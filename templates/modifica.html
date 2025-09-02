@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block header %}Modifica Scontrino{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <div class="form-group">
+        <label for="data_scontrino">Data Scontrino:</label>
+        <input type="date" id="data_scontrino" name="data_scontrino" value="{{ scontrino.data_scontrino }}" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="nome_scontrino">Nome Scontrino:</label>
+        <input type="text" id="nome_scontrino" name="nome_scontrino" value="{{ scontrino.nome_scontrino }}" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="importo_versare">Importo da Versare (€):</label>
+        <input type="number" id="importo_versare" name="importo_versare" step="0.01" min="0" value="{{ scontrino.importo_versare }}" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="importo_incassare">Importo da Incassare (€):</label>
+        <input type="number" id="importo_incassare" name="importo_incassare" step="0.01" min="0" value="{{ scontrino.importo_incassare }}" required>
+    </div>
+    
+    <button type="submit" class="btn btn-success">Salva Modifiche</button>
+    <a href="{{ url_for('lista_scontrini') }}" class="btn">Annulla</a>
+</form>
+{% endblock %}

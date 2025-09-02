@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block header %}{{ titolo }}{% endblock %}
+
+{% block content %}
+<div class="filtri">
+    <h3>Filtra Scontrini:</h3>
+    <a href="{{ url_for('lista_scontrini', filtro='tutti') }}" 
+       class="btn {% if filtro == 'tutti' %}active{% endif %}">Tutti ({{ scontrini|length }})</a>
+    <a href="{{ url_for('lista_scontrini', filtro='incassati') }}" 
+       class="btn {% if filtro == 'incassati' %}active{% endif %}">✓ Incassati</a>
+    <a href="{{ url_for('lista_scontrini', filtro='da_incassare') }}" 
+       class="btn {% if filtro == 'da_incassare' %}active{% endif %}">⏳ Da Incassare</a>
+</div>
+
+<div class="totali">
+    <h3>Riepilogo Vista Corrente</h3>
+    <p><strong>Totale da Versare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versare) }}</span></p>
+    <p><strong>Totale da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare) }}</span></p>
+    {% if filtro == 'tutti' %}
+    <p><strong>Già Incassato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassato) }}</span></p>
+    <p><strong>Ancora da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_da_incassare) }}</span></p>
+    {% endif %}
+</div>
+
+<h2>{{ titolo }} ({{ scontrini|length }} elementi)</h2>
+{% if scontrini %}
+<table>
+    <thead>
+        <tr>
+            <th>Data Scontrino</th>
+            <th>Nome Scontrino</th>
+            <th>Importo da Versare</th>
+            <th>Importo da Incassare</th>
+            <th>Stato</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for scontrino in scontrini %}
+        <tr {% if scontrino.incassato %}class="incassato"{% endif %}>
+            <td>{{ scontrino.data_scontrino }}</td>
+            <td>{{ scontrino.nome_scontrino }}</td>
+            <td class="euro">€ {{ "%.2f"|format(scontrino.importo_versare) }}</td>
+            <td class="euro">€ {{ "%.2f"|format(scontrino.importo_incassare) }}</td>
+            <td>
+                {% if scontrino.incassato %}
+                    <span class="badge badge-success">✓ Incassato</span>
+                    {% if scontrino.data_incasso %}
+                        <br><small>{{ scontrino.data_incasso[:16] }}</small>
+                    {% endif %}
+                {% else %}
+                    <span class="badge badge-warning">⏳ Da incassare</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if not scontrino.incassato %}
+                    <a href="{{ url_for('incassa_scontrino', id=scontrino.id) }}" 
+                       class="btn btn-success" 
+                       onclick="return confirm('Confermi di aver incassato questo scontrino?')">✓ Incassa</a>
+                {% else %}
+                    <a href="{{ url_for('annulla_incasso', id=scontrino.id) }}" 
+                       class="btn btn-warning" 
+                       onclick="return confirm('Annullare l\'incasso di questo scontrino?')">↶ Annulla Incasso</a>
+                {% endif %}
+                <a href="{{ url_for('modifica_scontrino', id=scontrino.id) }}" class="btn">Modifica</a>
+                <a href="{{ url_for('elimina_scontrino', id=scontrino.id) }}" 
+                   class="btn btn-danger" 
+                   onclick="return confirm('Sei sicuro di voler eliminare questo scontrino?')">Elimina</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="card">
+    <p>Nessuno scontrino trovato per il filtro selezionato.</p>
+    <a href="{{ url_for('aggiungi_scontrino') }}" class="btn btn-success">Aggiungi Nuovo Scontrino</a>
+</div>
+{% endif %}
+{% endblock %}

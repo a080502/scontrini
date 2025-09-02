@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block header %}Dashboard - Gestione Scontrini Fiscali{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ num_scontrini }}</div>
+        <div>Totale Scontrini</div>
+    </div>
+    <div class="stat-card success">
+        <div class="stat-number">{{ num_incassati }}</div>
+        <div>Incassati</div>
+    </div>
+    <div class="stat-card warning">
+        <div class="stat-number">{{ num_da_incassare }}</div>
+        <div>Da Incassare</div>
+    </div>
+    <div class="stat-card danger">
+        <div class="stat-number">€ {{ "%.0f"|format(totale_da_incassare) }}</div>
+        <div>Importo da Incassare</div>
+    </div>
+</div>
+
+<div class="totali">
+    <h3>Riepilogo Finanziario</h3>
+    <p><strong>Totale da Versare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versare) }}</span></p>
+    <p><strong>Totale da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare) }}</span></p>
+    <p><strong>Già Incassato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassato) }}</span></p>
+    <p><strong>Ancora da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_da_incassare) }}</span></p>
+    <p><strong>Saldo Finale:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare - totale_versare) }}</span></p>
+</div>
+
+<div class="card">
+    <h3>Ultimi Scontrini Inseriti</h3>
+    {% if ultimi_scontrini %}
+    <table>
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Nome</th>
+                <th>Da Incassare</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for scontrino in ultimi_scontrini %}
+            <tr {% if scontrino.incassato %}class="incassato"{% endif %}>
+                <td>{{ scontrino.data_scontrino }}</td>
+                <td>{{ scontrino.nome_scontrino }}</td>
+                <td class="euro">€ {{ "%.2f"|format(scontrino.importo_incassare) }}</td>
+                <td>
+                    {% if scontrino.incassato %}
+                        <span class="badge badge-success">✓ Incassato</span>
+                    {% else %}
+                        <span class="badge badge-warning">⏳ Da incassare</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not scontrino.incassato %}
+                        <a href="{{ url_for('incassa_scontrino', id=scontrino.id) }}" 
+                           class="btn btn-success" 
+                           onclick="return confirm('Confermi di aver incassato questo scontrino?')">✓ Incassa</a>
+                    {% endif %}
+                    <a href="{{ url_for('modifica_scontrino', id=scontrino.id) }}" class="btn">Modifica</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="text-align: center; margin-top: 15px;">
+        <a href="{{ url_for('lista_scontrini') }}" class="btn">Visualizza Tutti gli Scontrini</a>
+    </p>
+    {% else %}
+    <p>Nessuno scontrino presente. <a href="{{ url_for('aggiungi_scontrino') }}">Aggiungi il primo scontrino</a></p>
+    {% endif %}
+</div>
+{% endblock %}
