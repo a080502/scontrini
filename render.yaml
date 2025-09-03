@@ -6,8 +6,4 @@ services:
     startCommand: gunicorn wsgi:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9
-      - key: FLASK_APP
-        value: gestione_scontrini.py
-      - key: SECRET_KEY
-        value: "mk8s9d7f6g5h4j3k2l1m9n8b7v6c5x4z3a2s1d"
+        value: 3.11.10
