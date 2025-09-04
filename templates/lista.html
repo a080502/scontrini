@@ -1,20 +1,9 @@
 {% extends "base.html" %}
 
-{% block header %}{{ titolo }}{% endblock %}
+{% block title %}Lista scontrini{% endblock %}
 
 {% block content %}
-<div class="filtri">
-    <h3>Filtra Scontrini:</h3>
-    <a href="{{ url_for('lista_scontrini', filtro='tutti') }}" 
-       class="btn {% if filtro == 'tutti' %}active{% endif %}">Tutti ({{ scontrini|length }})</a>
-    <a href="{{ url_for('lista_scontrini', filtro='incassati') }}" 
-       class="btn {% if filtro == 'incassati' %}active{% endif %}">✓ Incassati</a>
-    <a href="{{ url_for('lista_scontrini', filtro='da_incassare') }}" 
-       class="btn {% if filtro == 'da_incassare' %}active{% endif %}">⏳ Da Incassare</a>
-</div>
-
-<div class="totali">
-    <h3>Riepilogo Vista Corrente</h3>
+<div class="card">
     <p><strong>Totale da Versare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versare) }}</span></p>
     <p><strong>Totale da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare) }}</span></p>
     {% if filtro == 'tutti' %}
@@ -61,7 +50,7 @@
                 {% else %}
                     <a href="{{ url_for('annulla_incasso', id=scontrino.id) }}" 
                        class="btn btn-warning" 
-                       onclick="return confirm('Annullare l\'incasso di questo scontrino?')">↶ Annulla Incasso</a>
+                       onclick="return confirm('Sei sicuro di voler ripristinare questo scontrino?')">↶ Ripristina</a>
                 {% endif %}
                 <a href="{{ url_for('modifica_scontrino', id=scontrino.id) }}" class="btn">Modifica</a>
                 <a href="{{ url_for('elimina_scontrino', id=scontrino.id) }}" 
