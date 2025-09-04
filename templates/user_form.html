@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>{% if user %}Modifica{% else %}Crea{% endif %} Utente</title>
+  <style>
+    .btn { background: #007bff; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; }
+    .form-group { margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{% if user %}Modifica Utente{% else %}Crea Nuovo Utente{% endif %}</h1>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="post">
+      <div class="form-group">
+        <label>Username</label>
+        <input name="username" type="text" required value="{{ user.username if user else '' }}">
+      </div>
+      <div class="form-group">
+        <label>Password {% if user %}(lascia vuoto per non cambiare){% endif %}</label>
+        <input name="password" type="password" {% if not user %}required{% endif %}>
+      </div>
+      <div class="form-group">
+        <label><input name="is_admin" type="checkbox" {% if user and user.is_admin %}checked{% endif %}> Amministratore</label>
+      </div>
+      <div>
+        <button class="btn" type="submit">{% if user %}Salva{% else %}Crea{% endif %}</button>
+        <a href="{{ url_for('users') }}" class="btn" style="background:#6c757d;">Annulla</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

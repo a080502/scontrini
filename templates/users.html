@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Gestione Utenti</title>
+  <style>
+    .btn { background: #007bff; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; }
+    table { width:100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Utenti</h1>
+    <p><a href="{{ url_for('user_create') }}" class="btn">Nuovo Utente</a> <a href="{{ url_for('index') }}" class="btn" style="background:#6c757d;">Torna</a></p>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Username</th><th>Admin</th><th>Creato</th><th>Azioni</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ 'Sì' if u.is_admin else 'No' }}</td>
+          <td>{{ u.created_at }}</td>
+          <td>
+            <a href="{{ url_for('user_edit', id=u.id) }}" class="btn">Modifica</a>
+            {% if u.id != current_user_id %}
+              <a href="{{ url_for('user_delete', id=u.id) }}" class="btn" style="background:#dc3545;" onclick="return confirm('Eliminare utente?')">Elimina</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
