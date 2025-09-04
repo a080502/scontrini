@@ -391,14 +391,100 @@ def api_scontrini():
         print(f"Errore nell'API: {e}")
         return jsonify({"errore": str(e)}), 500
 
-# Nuova route per correggere le date problematiche
-@app.route('/fix-dates')
-def fix_dates():
+# Route di emergenza per diagnosticare il problema
+@app.route('/diagnose')
+def diagnose():
     try:
-        clean_database_dates()
-        return "Date corrette con successo!"
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Controlla la struttura della tabella
+        cursor.execute("""
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns 
+            WHERE table_name = 'scontrini' AND table_schema = 'public'
+        """)
+        columns = cursor.fetchall()
+        
+        result = "=== DIAGNOSI DATABASE ===\n\n"
+        result += "Struttura tabella scontrini:\n"
+        for col in columns:
+            result += f"- {col['column_name']}: {col['data_type']} (NULL: {col['is_nullable']})\n"
+        
+        # Conta i record totali
+        cursor.execute("SELECT COUNT(*) as count FROM scontrini")
+        count = cursor.fetchone()['count']
+        result += f"\nTotale record: {count}\n"
+        
+        if count > 0:
+            # Prova a selezionare solo un record per volta per identificare quello problematico
+            cursor.execute("SELECT id FROM scontrini ORDER BY id")
+            ids = cursor.fetchall()
+            
+            problematic_ids = []
+            for record in ids:
+                try:
+                    cursor.execute("SELECT * FROM scontrini WHERE id = %s", (record['id'],))
+                    single_record = cursor.fetchone()
+                    # Prova ad accedere alla data
+                    date_value = single_record['data_scontrino']
+                    if date_value:
+                        year = date_value.year
+                        if year > 2100 or year < 1900:
+                            problematic_ids.append(f"ID {record['id']}: anno {year}")
+                except Exception as e:
+                    problematic_ids.append(f"ID {record['id']}: errore {str(e)}")
+            
+            if problematic_ids:
+                result += f"\nRecord problematici trovati ({len(problematic_ids)}):\n"
+                for pid in problematic_ids[:10]:  # Mostra solo i primi 10
+                    result += f"- {pid}\n"
+                if len(problematic_ids) > 10:
+                    result += f"... e altri {len(problematic_ids) - 10}\n"
+            else:
+                result += "\nNessun record problematico trovato nella verifica singola.\n"
+        
+        cursor.close()
+        conn.close()
+        
+        return f"<pre>{result}</pre>"
+        
     except Exception as e:
-        return f"Errore nella correzione delle date: {e}"
+        return f"Errore nella diagnosi: {e}"
+
+# Route per eliminare record problematici
+@app.route('/delete-problematic')
+def delete_problematic():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Prima conta quanti sono
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM scontrini 
+            WHERE EXTRACT(YEAR FROM data_scontrino) > 2100 
+               OR EXTRACT(YEAR FROM data_scontrino) < 1900
+        """)
+        count_before = cursor.fetchone()['count']
+        
+        if count_before > 0:
+            # Elimina i record problematici
+            cursor.execute("""
+                DELETE FROM scontrini 
+                WHERE EXTRACT(YEAR FROM data_scontrino) > 2100 
+                   OR EXTRACT(YEAR FROM data_scontrino) < 1900
+            """)
+            conn.commit()
+            
+            return f"Eliminati {count_before} record con date problematiche."
+        else:
+            return "Nessun record problematico trovato da eliminare."
+        
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        return f"Errore nell'eliminazione: {e}"
 
 # Test di base
 @app.route('/test')
