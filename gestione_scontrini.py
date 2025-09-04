@@ -6,6 +6,169 @@ import os
 import urllib.parse
 
 app = Flask(__name__)
+# ---- Inserire questo blocco vicino all'inizio di gestione_scontrini.py (dopo app = Flask(...)) ----
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+from flask import session, g, flash
+
+# Assicurati che app.secret_key sia definito (già presente nel file)
+# Decoratore per proteggere le view
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('user_id'):
+            return redirect(url_for('login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('user_id'):
+            return redirect(url_for('login'))
+        # carica l'utente dal DB per verificare is_admin
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT is_admin FROM users WHERE id = %s", (session['user_id'],))
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if not row or not row.get('is_admin'):
+                return "Permesso negato", 403
+        except Exception:
+            return "Errore autorizzazione", 500
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Route login / logout
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            user = None
+        if not user or not check_password_hash(user['password_hash'], password):
+            error = "Credenziali non valide"
+            return render_template('login.html', error=error)
+        # salva sessione
+        session.clear()
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        session['is_admin'] = bool(user.get('is_admin'))
+        next_url = request.args.get('next') or url_for('index')
+        return redirect(next_url)
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# Route gestione utenti (admin)
+@app.route('/users')
+@admin_required
+def users():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, is_admin, created_at FROM users ORDER BY id")
+        users = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return render_template('users.html', users=users, current_user_id=session.get('user_id'))
+    except Exception as e:
+        return f"Errore: {e}", 500
+
+@app.route('/users/create', methods=['GET', 'POST'])
+@admin_required
+def user_create():
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username').strip()
+        password = request.form.get('password')
+        is_admin = bool(request.form.get('is_admin'))
+        if not username or not password:
+            error = "Compila username e password"
+        else:
+            pw_hash = generate_password_hash(password)
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO users (username, password_hash, is_admin) VALUES (%s, %s, %s)",
+                               (username, pw_hash, is_admin))
+                conn.commit()
+                cursor.close()
+                conn.close()
+                return redirect(url_for('users'))
+            except Exception as e:
+                error = f"Errore creazione utente: {e}"
+    return render_template('user_form.html', user=None, error=error)
+
+@app.route('/users/edit/<int:id>', methods=['GET', 'POST'])
+@admin_required
+def user_edit(id):
+    error = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        if request.method == 'POST':
+            username = request.form.get('username').strip()
+            password = request.form.get('password')
+            is_admin = bool(request.form.get('is_admin'))
+            if not username:
+                error = "Username obbligatorio"
+            else:
+                if password:
+                    pw_hash = generate_password_hash(password)
+                    cursor.execute("UPDATE users SET username=%s, password_hash=%s, is_admin=%s WHERE id=%s",
+                                   (username, pw_hash, is_admin, id))
+                else:
+                    cursor.execute("UPDATE users SET username=%s, is_admin=%s WHERE id=%s",
+                                   (username, is_admin, id))
+                conn.commit()
+                cursor.close()
+                conn.close()
+                return redirect(url_for('users'))
+        else:
+            cursor.execute("SELECT id, username, is_admin, created_at FROM users WHERE id=%s", (id,))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if not user:
+                return "Utente non trovato", 404
+            return render_template('user_form.html', user=user, error=None)
+    except Exception as e:
+        return f"Errore: {e}", 500
+
+@app.route('/users/delete/<int:id>')
+@admin_required
+def user_delete(id):
+    # evita che l'admin si cancelli da solo
+    if session.get('user_id') == id:
+        return "Impossibile eliminare l'utente connesso", 400
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM users WHERE id=%s", (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return redirect(url_for('users'))
+    except Exception as e:
+        return f"Errore: {e}", 500
+
+# ---- Fine snippet ----
+
 app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
 
 # Configurazione database - Render PostgreSQL
