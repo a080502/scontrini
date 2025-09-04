@@ -3,94 +3,61 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-  <div class="row g-3 mb-3">
-    <div class="col-12 col-md-3">
-      <div class="card summary-card text-center p-2">
-        <div class="card-body">
-          <h6 class="card-title">Totale da Versare</h6>
-          <p class="euro display-6">€ {{ "%.2f"|format(totale_versare) }}</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-3">
-      <div class="card summary-card text-center p-2">
-        <div class="card-body">
-          <h6 class="card-title">Totale da Incassare</h6>
-          <p class="euro display-6">€ {{ "%.2f"|format(totale_incassare) }}</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-3">
-      <div class="card summary-card text-center p-2">
-        <div class="card-body">
-          <h6 class="card-title">Già Incassato</h6>
-          <p class="euro display-6">€ {{ "%.2f"|format(totale_incassato) }}</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-3">
-      <div class="card summary-card text-center p-2">
-        <div class="card-body">
-          <h6 class="card-title">Ancora da Incassare</h6>
-          <p class="euro display-6">€ {{ "%.2f"|format(totale_da_incassare) }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="card">
+    <p><strong>Totale da Versare!:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versare) }}</span></p>
+    <p><strong>Totale da Incassare!:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare) }}</span></p>
+    <p><strong>Già Incassato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassato) }}</span></p>
+    <p><strong>Ancora da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_da_incassare) }}</span></p>
+    <p><strong>Saldo Finale:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare - totale_versare) }}</span></p>
+</div>
 
-  <div class="card">
-    <h3 class="card-header">Ultimi Scontrini Inseriti</h3>
-    <div class="card-body">
-      {% if ultimi_scontrini %}
-      <div class="table-responsive">
-      <table class="table table-striped">
-          <thead>
-              <tr>
-                  <th>Data</th>
-                  <th>Nome</th>
-                  <th>Da Incassare</th>
-                  <th>Stato</th>
-                  <th>Azioni</th>
-              </tr>
-          </thead>
-          <tbody>
-              {% for scontrino in ultimi_scontrini %}
-              <tr {% if scontrino.incassato %}class="incassato"{% endif %}>
-                  <td>{{ scontrino.data_scontrino }}</td>
-                  <td>{{ scontrino.nome_scontrino }}</td>
-                  <td class="euro">€ {{ "%.2f"|format(scontrino.importo_incassare) }}</td>
-                  <td>
-                      {% if scontrino.incassato %}
-                          <span class="badge badge-success">✓ Incassato</span>
-                      {% else %}
-                          <span class="badge badge-warning">⏳ Da incassare</span>
-                      {% endif %}
-                  </td>
-                  <td>
-                      {% if not scontrino.incassato %}
-                          <a href="{{ url_for('incassa_scontrino', id=scontrino.id) }}" 
-                             class="btn btn-success btn-sm" 
-                             onclick="return confirm('Confermi di aver incassato questo scontrino?')">✓ Incassa</a>
-                      {% else %}
-                          <a href="{{ url_for('annulla_incasso', id=scontrino.id) }}" 
-                             class="btn btn-warning btn-sm" 
-                             onclick="return confirm('Sei sicuro di voler ripristinare questo scontrino?')">↶ Ripristina</a>
-                      {% endif %}
-                      <a href="{{ url_for('modifica_scontrino', id=scontrino.id) }}" class="btn btn-secondary btn-sm">Modifica</a>
-                  </td>
-              </tr>
-              {% endfor %}
-          </tbody>
-      </table>
-      </div>
-      <p class="text-center mt-3">
-          <a href="{{ url_for('lista_scontrini') }}" class="btn btn-outline-primary">Visualizza Tutti gli Scontrini</a>
-      </p>
-      {% else %}
-      <p>Nessuno scontrino presente. <a href="{{ url_for('aggiungi_scontrino') }}">Aggiungi il primo scontrino</a></p>
-      {% endif %}
-    </div>
-  </div>
+<div class="card">
+    <h3>Ultimi Scontrini Inseriti</h3>
+    {% if ultimi_scontrini %}
+    <table>
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Nome</th>
+                <th>Da Incassare</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for scontrino in ultimi_scontrini %}
+            <tr {% if scontrino.incassato %}class="incassato"{% endif %}>
+                <td>{{ scontrino.data_scontrino }}</td>
+                <td>{{ scontrino.nome_scontrino }}</td>
+                <td class="euro">€ {{ "%.2f"|format(scontrino.importo_incassare) }}</td>
+                <td>
+                    {% if scontrino.incassato %}
+                        <span class="badge badge-success">✓ Incassato</span>
+                    {% else %}
+                        <span class="badge badge-warning">⏳ Da incassare</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not scontrino.incassato %}
+                        <a href="{{ url_for('incassa_scontrino', id=scontrino.id) }}" 
+                           class="btn btn-success" 
+                           onclick="return confirm('Confermi di aver incassato questo scontrino?')">✓ Incassa</a>
+                    {% else %}
+                        <a href="{{ url_for('annulla_incasso', id=scontrino.id) }}" 
+                           class="btn btn-warning" 
+                           onclick="return confirm('Sei sicuro di voler ripristinare questo scontrino?')">↶ Ripristina</a>
+                    {% endif %}
+                    <a href="{{ url_for('modifica_scontrino', id=scontrino.id) }}" class="btn">Modifica</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="text-align: center; margin-top: 15px;">
+        <a href="{{ url_for('lista_scontrini') }}" class="btn">Visualizza Tutti gli Scontrini</a>
+    </p>
+    {% else %}
+    <p>Nessuno scontrino presente. <a href="{{ url_for('aggiungi_scontrino') }}">Aggiungi il primo scontrino</a></p>
+    {% endif %}
 </div>
 {% endblock %}
