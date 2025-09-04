@@ -425,10 +425,16 @@ def api_statistiche():
                 'totale_scontrini': len(scontrini),
                 'scontrini_incassati': sum(1 for s in scontrini if s['incassato']),
                 'scontrini_da_incassare': sum(1 for s in scontrini if not s['incassato']),
+                'scontrini_versati': sum(1 for s in scontrini if s['versato']),
+                'scontrini_da_versare': sum(1 for s in scontrini if not s['versato']),
+                'scontrini_completi': sum(1 for s in scontrini if s['incassato'] and s['versato']),
                 'totale_versare': float(sum(Decimal(str(s['importo_versare'])) for s in scontrini)),
                 'totale_incassare': float(sum(Decimal(str(s['importo_incassare'])) for s in scontrini)),
                 'totale_incassato': float(sum(Decimal(str(s['importo_incassare'])) for s in scontrini if s['incassato'])),
-                'totale_da_incassare': float(sum(Decimal(str(s['importo_incassare'])) for s in scontrini if not s['incassato']))
+                'totale_da_incassare': float(sum(Decimal(str(s['importo_incassare'])) for s in scontrini if not s['incassato'])),
+                'totale_versato': float(sum(Decimal(str(s['importo_versare'])) for s in scontrini if s['versato'])),
+                'totale_da_versare': float(sum(Decimal(str(s['importo_versare'])) for s in scontrini if not s['versato'])),
+                'differenza_incasso_versamento': float(sum(Decimal(str(s['importo_incassare'])) for s in scontrini if s['incassato']) - sum(Decimal(str(s['importo_versare'])) for s in scontrini if s['versato']))
             }
             
             return jsonify(statistiche)
