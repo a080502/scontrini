@@ -2,10 +2,9 @@
 name = "scontrini"
 version = "0.1.0"
 description = "Una web app per la gestione degli scontrini."
-authors = ["Your Name <you@example.com>"]
+authors = ["Your Name you@example.com"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "."}]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.14"
