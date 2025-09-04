@@ -1,34 +1,51 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, g
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+import psycopg2
+import psycopg2.extras
+from datetime import datetime
+import os
+import urllib.parse
+
+# Auth helpers
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-import psycopg2
-from psycopg2.extras import DictCursor
-import os
-from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'chiave_segreta_da_cambiare'  # Cambia questa chiave in produzione
+app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
 
-# Configurazione del database
-DB_HOST = os.environ.get('DB_HOST', 'localhost')
-DB_NAME = os.environ.get('DB_NAME', 'scontrini_db')
-DB_USER = os.environ.get('DB_USER', 'postgres')
-DB_PASS = os.environ.get('DB_PASS', 'password')
+# Configurazione database - Render PostgreSQL
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db_connection():
-    conn = psycopg2.connect(
-        host=DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASS,
-        cursor_factory=DictCursor
-    )
-    return conn
+    """Crea una connessione al database PostgreSQL"""
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL non configurata nelle variabili d'ambiente")
+    
+    try:
+        # Parse dell'URL del database per psycopg2
+        url = urllib.parse.urlparse(DATABASE_URL)
+        
+        # Debug info (rimuovi in produzione)
+        print(f"Tentativo connessione a: {url.hostname}:{url.port}")
+        
+        conn = psycopg2.connect(
+            host=url.hostname,
+            port=url.port,
+            database=url.path[1:],  # Rimuove il '/' iniziale
+            user=url.username,
+            password=url.password,
+            cursor_factory=psycopg2.extras.RealDictCursor,
+            sslmode='require'  # Render richiede SSL
+        )
+        
+        print("Connessione al database riuscita!")
+        return conn
+        
+    except Exception as e:
+        print(f"Errore nella connessione al database: {e}")
+        raise
 
 def init_db():
-    """
-    Inizializza il database creando le tabelle necessarie
-    """
+    """Inizializza il database PostgreSQL (tabelle scontrini e users)"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -59,24 +76,36 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+        # Verifica se le colonne esistono (PostgreSQL usa information_schema)
+        cursor.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'scontrini' AND table_schema = 'public'
+        """)
+        columns = [row['column_name'] for row in cursor.fetchall()]
         
-        # Crea un utente admin di default se non esiste
-        default_password_hash = generate_password_hash('admin')
-        cursor.execute('''
-            INSERT INTO users (username, password_hash, is_admin)
-            VALUES (%s, %s, TRUE)
-            ON CONFLICT (username) DO NOTHING
-        ''', ('admin', default_password_hash))
-        
+        # Aggiungi colonne se non esistono (compatibilità con vecchie versioni)
+        if 'incassato' not in columns:
+            cursor.execute('ALTER TABLE scontrini ADD COLUMN incassato BOOLEAN DEFAULT FALSE')
+            print("Colonna 'incassato' aggiunta")
+            
+        if 'data_incasso' not in columns:
+            cursor.execute('ALTER TABLE scontrini ADD COLUMN data_incasso TIMESTAMP NULL')
+            print("Colonna 'data_incasso' aggiunta")
+            
         conn.commit()
         cursor.close()
         conn.close()
-        print("Inizializzazione completata!")
+        print("Database inizializzato con successo!")
         
     except Exception as e:
         print(f"Errore nell'inizializzazione del database: {e}")
         raise
 
+# ----------------------------
+# Autenticazione e Autorizzazione
+# ----------------------------
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -104,6 +133,41 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            user = None
+        if not user or not check_password_hash(user['password_hash'], password):
+            error = "Credenziali non valide"
+            return render_template('login.html', error=error)
+        # salva sessione
+        session.clear()
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        session['is_admin'] = bool(user.get('is_admin'))
+        next_url = request.args.get('next') or url_for('index')
+        return redirect(next_url)
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# ----------------------------
+# Rotte principali (protette)
+# ----------------------------
 @app.route('/')
 @login_required
 def index():
@@ -140,44 +204,6 @@ def index():
     except Exception as e:
         print(f"Errore nella homepage: {e}")
         return f"Errore: {e}", 500
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-            user = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            
-            # TEMPORANEAMENTE DISABILITATO IL CONTROLLO PASSWORD
-            # if not user or not check_password_hash(user['password_hash'], password):
-            if not user:  # Controlla solo se l'utente esiste
-                error = "Credenziali non valide"
-                return render_template('login.html', error=error)
-                
-            # Imposta la sessione
-            session.clear()
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['is_admin'] = bool(user.get('is_admin'))
-            
-            next_url = request.args.get('next') or url_for('index')
-            return redirect(next_url)
-        except Exception as e:
-            error = f"Errore: {e}"
-            return render_template('login.html', error=error)
-    return render_template('login.html', error=error)
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
 
 @app.route('/lista')
 @login_required
@@ -436,6 +462,25 @@ def user_delete(id):
         return redirect(url_for('users'))
     except Exception as e:
         return f"Errore: {e}", 500
+
+# Test di base
+@app.route('/test')
+def test():
+    return "Flask funziona!"
+
+# Test di connessione
+@app.route('/test-db')
+def test_db():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT version();')
+        version = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return f"Database connesso! Versione PostgreSQL: {version}"
+    except Exception as e:
+        return f"Errore connessione database: {e}"
 
 if __name__ == '__main__':
     # Inizializza il database all'avvio solo in sviluppo
