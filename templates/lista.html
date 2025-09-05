@@ -36,7 +36,7 @@
                 {% if scontrino.incassato %}
                     <span class="badge badge-success">✓ Incassato</span>
                     {% if scontrino.data_incasso %}
-                        <br><small>{{ scontrino.data_incasso[:16] }}</small>
+                        <br><small>{{ scontrino.data_incasso.strftime('%Y-%m-%d %H:%M') }}</small>
                     {% endif %}
                 {% else %}
                     <span class="badge badge-warning">⏳ Da incassare</span>
