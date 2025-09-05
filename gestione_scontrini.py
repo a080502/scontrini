@@ -40,59 +40,6 @@ def get_db_connection():
         print(f"Errore nella connessione al database: {e}")
         raise
 
-def validate_date(date_string):
-    """Valida e corregge il formato della data"""
-    try:
-        # Prova a parsare la data
-        parsed_date = datetime.strptime(date_string, '%Y-%m-%d')
-        
-        # Controlla se l'anno è ragionevole (tra 1900 e 2100)
-        if parsed_date.year < 1900 or parsed_date.year > 2100:
-            raise ValueError(f"Anno non valido: {parsed_date.year}")
-            
-        return parsed_date.strftime('%Y-%m-%d')
-    except ValueError as e:
-        print(f"Errore nella validazione della data '{date_string}': {e}")
-        # Ritorna la data corrente come fallback
-        return datetime.now().strftime('%Y-%m-%d')
-
-def clean_database_dates():
-    """Pulisce le date non valide nel database"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Trova record con date problematiche
-        cursor.execute("""
-            SELECT id, data_scontrino 
-            FROM scontrini 
-            WHERE EXTRACT(YEAR FROM data_scontrino) > 2100 
-               OR EXTRACT(YEAR FROM data_scontrino) < 1900
-        """)
-        
-        problematic_records = cursor.fetchall()
-        
-        if problematic_records:
-            print(f"Trovati {len(problematic_records)} record con date problematiche")
-            
-            # Correggi le date problematiche impostandole alla data corrente
-            for record in problematic_records:
-                cursor.execute("""
-                    UPDATE scontrini 
-                    SET data_scontrino = CURRENT_DATE 
-                    WHERE id = %s
-                """, (record['id'],))
-                print(f"Corretta data per record ID {record['id']}")
-            
-            conn.commit()
-            print("Date corrette con successo!")
-        
-        cursor.close()
-        conn.close()
-        
-    except Exception as e:
-        print(f"Errore nella pulizia delle date: {e}")
-
 def init_db():
     """Inizializza il database PostgreSQL"""
     try:
@@ -137,9 +84,6 @@ def init_db():
         conn.close()
         print("Database inizializzato con successo!")
         
-        # Pulisci le date problematiche
-        clean_database_dates()
-        
     except Exception as e:
         print(f"Errore nell'inizializzazione del database: {e}")
         raise
@@ -150,39 +94,19 @@ def index():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Usa COALESCE per gestire valori NULL e aggiungi controlli di validità
-        cursor.execute('''
-            SELECT *, 
-                   CASE 
-                       WHEN EXTRACT(YEAR FROM data_scontrino) > 2100 
-                         OR EXTRACT(YEAR FROM data_scontrino) < 1900 
-                       THEN CURRENT_DATE 
-                       ELSE data_scontrino 
-                   END as data_corretta
-            FROM scontrini
-        ''')
+        cursor.execute('SELECT * FROM scontrini')
         scontrini = cursor.fetchall()
         
-        cursor.execute('''
-            SELECT *, 
-                   CASE 
-                       WHEN EXTRACT(YEAR FROM data_scontrino) > 2100 
-                         OR EXTRACT(YEAR FROM data_scontrino) < 1900 
-                       THEN CURRENT_DATE 
-                       ELSE data_scontrino 
-                   END as data_corretta
-            FROM scontrini 
-            ORDER BY data_inserimento DESC LIMIT 3
-        ''')
+        cursor.execute('SELECT * FROM scontrini ORDER BY data_inserimento DESC LIMIT 3')
         ultimi_scontrini = cursor.fetchall()
         
         cursor.close()
         conn.close()
         
-        totale_versare = sum(float(s['importo_versare'] or 0) for s in scontrini)
-        totale_incassare = sum(float(s['importo_incassare'] or 0) for s in scontrini)
-        totale_incassato = sum(float(s['importo_incassare'] or 0) for s in scontrini if s['incassato'])
-        totale_da_incassare = sum(float(s['importo_incassare'] or 0) for s in scontrini if not s['incassato'])
+        totale_versare = sum(float(s['importo_versare']) for s in scontrini)
+        totale_incassare = sum(float(s['importo_incassare']) for s in scontrini)
+        totale_incassato = sum(float(s['importo_incassare']) for s in scontrini if s['incassato'])
+        totale_da_incassare = sum(float(s['importo_incassare']) for s in scontrini if not s['incassato'])
         num_scontrini = len(scontrini)
         num_incassati = sum(1 for s in scontrini if s['incassato'])
         num_da_incassare = num_scontrini - num_incassati
@@ -207,35 +131,24 @@ def lista_scontrini():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        base_query = '''
-            SELECT *, 
-                   CASE 
-                       WHEN EXTRACT(YEAR FROM data_scontrino) > 2100 
-                         OR EXTRACT(YEAR FROM data_scontrino) < 1900 
-                       THEN CURRENT_DATE 
-                       ELSE data_scontrino 
-                   END as data_corretta
-            FROM scontrini
-        '''
-        
         if filtro == 'incassati':
-            cursor.execute(base_query + ' WHERE incassato = TRUE ORDER BY data_scontrino DESC, data_inserimento DESC')
+            cursor.execute('SELECT * FROM scontrini WHERE incassato = TRUE ORDER BY data_scontrino DESC, data_inserimento DESC')
             titolo = "Scontrini Incassati"
         elif filtro == 'da_incassare':
-            cursor.execute(base_query + ' WHERE incassato = FALSE ORDER BY data_scontrino DESC, data_inserimento DESC')
+            cursor.execute('SELECT * FROM scontrini WHERE incassato = FALSE ORDER BY data_scontrino DESC, data_inserimento DESC')
             titolo = "Scontrini da Incassare"
         else:
-            cursor.execute(base_query + ' ORDER BY data_scontrino DESC, data_inserimento DESC')
+            cursor.execute('SELECT * FROM scontrini ORDER BY data_scontrino DESC, data_inserimento DESC')
             titolo = "Tutti gli Scontrini"
         
         scontrini = cursor.fetchall()
         cursor.close()
         conn.close()
         
-        totale_versare = sum(float(s['importo_versare'] or 0) for s in scontrini)
-        totale_incassare = sum(float(s['importo_incassare'] or 0) for s in scontrini)
-        totale_incassato = sum(float(s['importo_incassare'] or 0) for s in scontrini if s['incassato'])
-        totale_da_incassare = sum(float(s['importo_incassare'] or 0) for s in scontrini if not s['incassato'])
+        totale_versare = sum(float(s['importo_versare']) for s in scontrini)
+        totale_incassare = sum(float(s['importo_incassare']) for s in scontrini)
+        totale_incassato = sum(float(s['importo_incassare']) for s in scontrini if s['incassato'])
+        totale_da_incassare = sum(float(s['importo_incassare']) for s in scontrini if not s['incassato'])
         
         return render_template('lista.html', 
                              scontrini=scontrini,
@@ -253,13 +166,10 @@ def lista_scontrini():
 def aggiungi_scontrino():
     if request.method == 'POST':
         try:
-            # Valida la data prima di inserirla
-            data_scontrino_raw = request.form['data_scontrino']
-            data_scontrino = validate_date(data_scontrino_raw)
-            
+            data_scontrino = request.form['data_scontrino']
             nome_scontrino = request.form['nome_scontrino']
-            importo_versare = float(request.form['importo_versare'] or 0)
-            importo_incassare = float(request.form['importo_incassare'] or 0)
+            importo_versare = float(request.form['importo_versare'])
+            importo_incassare = float(request.form['importo_incassare'])
             
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -285,13 +195,10 @@ def modifica_scontrino(id):
         cursor = conn.cursor()
         
         if request.method == 'POST':
-            # Valida la data prima di aggiornarla
-            data_scontrino_raw = request.form['data_scontrino']
-            data_scontrino = validate_date(data_scontrino_raw)
-            
+            data_scontrino = request.form['data_scontrino']
             nome_scontrino = request.form['nome_scontrino']
-            importo_versare = float(request.form['importo_versare'] or 0)
-            importo_incassare = float(request.form['importo_incassare'] or 0)
+            importo_versare = float(request.form['importo_versare'])
+            importo_incassare = float(request.form['importo_incassare'])
             
             cursor.execute('''
                 UPDATE scontrini 
@@ -304,16 +211,7 @@ def modifica_scontrino(id):
             
             return redirect(url_for('lista_scontrini'))
         
-        cursor.execute('''
-            SELECT *, 
-                   CASE 
-                       WHEN EXTRACT(YEAR FROM data_scontrino) > 2100 
-                         OR EXTRACT(YEAR FROM data_scontrino) < 1900 
-                       THEN CURRENT_DATE 
-                       ELSE data_scontrino 
-                   END as data_corretta
-            FROM scontrini WHERE id = %s
-        ''', (id,))
+        cursor.execute('SELECT * FROM scontrini WHERE id = %s', (id,))
         scontrino = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -373,16 +271,7 @@ def api_scontrini():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT *, 
-                   CASE 
-                       WHEN EXTRACT(YEAR FROM data_scontrino) > 2100 
-                         OR EXTRACT(YEAR FROM data_scontrino) < 1900 
-                       THEN CURRENT_DATE 
-                       ELSE data_scontrino 
-                   END as data_corretta
-            FROM scontrini ORDER BY data_scontrino DESC
-        ''')
+        cursor.execute('SELECT * FROM scontrini ORDER BY data_scontrino DESC')
         scontrini = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -390,101 +279,6 @@ def api_scontrini():
     except Exception as e:
         print(f"Errore nell'API: {e}")
         return jsonify({"errore": str(e)}), 500
-
-# Route di emergenza per diagnosticare il problema
-@app.route('/diagnose')
-def diagnose():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Controlla la struttura della tabella
-        cursor.execute("""
-            SELECT column_name, data_type, is_nullable
-            FROM information_schema.columns 
-            WHERE table_name = 'scontrini' AND table_schema = 'public'
-        """)
-        columns = cursor.fetchall()
-        
-        result = "=== DIAGNOSI DATABASE ===\n\n"
-        result += "Struttura tabella scontrini:\n"
-        for col in columns:
-            result += f"- {col['column_name']}: {col['data_type']} (NULL: {col['is_nullable']})\n"
-        
-        # Conta i record totali
-        cursor.execute("SELECT COUNT(*) as count FROM scontrini")
-        count = cursor.fetchone()['count']
-        result += f"\nTotale record: {count}\n"
-        
-        if count > 0:
-            # Prova a selezionare solo un record per volta per identificare quello problematico
-            cursor.execute("SELECT id FROM scontrini ORDER BY id")
-            ids = cursor.fetchall()
-            
-            problematic_ids = []
-            for record in ids:
-                try:
-                    cursor.execute("SELECT * FROM scontrini WHERE id = %s", (record['id'],))
-                    single_record = cursor.fetchone()
-                    # Prova ad accedere alla data
-                    date_value = single_record['data_scontrino']
-                    if date_value:
-                        year = date_value.year
-                        if year > 2100 or year < 1900:
-                            problematic_ids.append(f"ID {record['id']}: anno {year}")
-                except Exception as e:
-                    problematic_ids.append(f"ID {record['id']}: errore {str(e)}")
-            
-            if problematic_ids:
-                result += f"\nRecord problematici trovati ({len(problematic_ids)}):\n"
-                for pid in problematic_ids[:10]:  # Mostra solo i primi 10
-                    result += f"- {pid}\n"
-                if len(problematic_ids) > 10:
-                    result += f"... e altri {len(problematic_ids) - 10}\n"
-            else:
-                result += "\nNessun record problematico trovato nella verifica singola.\n"
-        
-        cursor.close()
-        conn.close()
-        
-        return f"<pre>{result}</pre>"
-        
-    except Exception as e:
-        return f"Errore nella diagnosi: {e}"
-
-# Route per eliminare record problematici
-@app.route('/delete-problematic')
-def delete_problematic():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Prima conta quanti sono
-        cursor.execute("""
-            SELECT COUNT(*) as count FROM scontrini 
-            WHERE EXTRACT(YEAR FROM data_scontrino) > 2100 
-               OR EXTRACT(YEAR FROM data_scontrino) < 1900
-        """)
-        count_before = cursor.fetchone()['count']
-        
-        if count_before > 0:
-            # Elimina i record problematici
-            cursor.execute("""
-                DELETE FROM scontrini 
-                WHERE EXTRACT(YEAR FROM data_scontrino) > 2100 
-                   OR EXTRACT(YEAR FROM data_scontrino) < 1900
-            """)
-            conn.commit()
-            
-            return f"Eliminati {count_before} record con date problematiche."
-        else:
-            return "Nessun record problematico trovato da eliminare."
-        
-        cursor.close()
-        conn.close()
-        
-    except Exception as e:
-        return f"Errore nell'eliminazione: {e}"
 
 # Test di base
 @app.route('/test')
