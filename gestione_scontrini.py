@@ -233,6 +233,32 @@ def annulla_versamento(id):
     return redirect(request.referrer or url_for('lista_scontrini'))
 
 # ... resto delle funzioni (modifica, elimina, gestione utenti) invariate ...
+@app.route('/aggiungi', methods=['GET', 'POST'])
+def aggiungi_scontrino():
+    if request.method == 'POST':
+        try:
+            data_scontrino = validate_date(request.form['data_scontrino'])
+            nome_scontrino = request.form['nome_scontrino']
+            importo_versare = float(request.form['importo_versare'] or 0)
+            importo_incassare = float(request.form['importo_incassare'] or 0)
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO scontrini (data_scontrino, nome_scontrino, importo_versare, importo_incassare) 
+                VALUES (%s, %s, %s, %s)
+            ''', (data_scontrino, nome_scontrino, importo_versare, importo_incassare))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return redirect(url_for('lista_scontrini'))
+        except Exception as e:
+            print(f"Errore nell'aggiunta: {e}")
+            return f"Errore: {e}", 500
+    
+    return render_template('aggiungi.html')
+
 @app.route('/modifica/<int:id>', methods=['GET', 'POST'])
 def modifica_scontrino(id):
     conn = get_db_connection()
@@ -251,6 +277,89 @@ def modifica_scontrino(id):
     scontrino = cursor.fetchone()
     conn.close()
     return render_template('modifica.html', scontrino=scontrino)
+    
+@app.route('/incassa/<int:id>')
+def incassa_scontrino(id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE scontrini SET incassato = TRUE, data_incasso = CURRENT_TIMESTAMP WHERE id = %s', (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return redirect(request.referrer or url_for('lista_scontrini'))
+    except Exception as e:
+        print(f"Errore nell'incasso: {e}")
+        return f"Errore: {e}", 500
+
+    @app.route('/aggiungi-utente', methods=['GET', 'POST'])
+def aggiungi_utente():
+    if request.method == 'POST':
+        filiale = request.form.get('filiale')
+        utente = request.form.get('utente')
+        nome_utente = request.form.get('nome_utente')
+        mail = request.form.get('mail')
+        password = request.form.get('password')
+        campo1 = request.form.get('campo_libero1')
+        campo2 = request.form.get('campo_libero2')
+
+        if not mail or not password:
+            error = "Email e password sono obbligatori."
+            return render_template('aggiungi_utente.html', error=error, form=request.form)
+        
+        password_hash = generate_password_hash(password)
+        conn = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO users (filiale, utente, nome_utente, mail, password_hash, campo_libero1, campo_libero2)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (filiale, utente, nome_utente, mail, password_hash, campo1, campo2))
+            conn.commit()
+            return redirect(url_for('index'))
+        except psycopg2.IntegrityError:
+            if conn: conn.rollback()
+            error = "Errore: la mail risulta già presente nel database."
+            return render_template('aggiungi_utente.html', error=error, form=request.form)
+        except Exception as e:
+            if conn: conn.rollback()
+            print(f"Errore aggiunta utente: {e}")
+            return f"Errore: {e}", 500
+        finally:
+            if conn: conn.close()
+
+    return render_template('aggiungi_utente.html')
+
+        
+    @app.route('/annulla_incasso/<int:id>')
+def annulla_incasso(id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE scontrini SET incassato = FALSE, data_incasso = NULL, versato = FALSE, data_versamento = NULL WHERE id = %s', (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return redirect(url_for('lista_scontrini'))
+    except Exception as e:
+        print(f"Errore nell'annullamento incasso: {e}")
+        return f"Errore: {e}", 500
+
+@app.route('/lista-utenti')
+def lista_utenti():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, filiale, utente, nome_utente, mail, campo_libero1, campo_libero2, created_at FROM users ORDER BY created_at DESC')
+        utenti = cursor.fetchall()
+        conn.close()
+        return render_template('lista_utenti.html', utenti=utenti)
+    except Exception as e:
+        print(f"Errore nella lista utenti: {e}")
+        return f"Errore nel caricamento degli utenti: {e}", 500
+
+
 
 @app.route('/elimina/<int:id>')
 def elimina_scontrino(id):
