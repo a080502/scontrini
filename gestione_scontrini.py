@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
@@ -6,7 +6,6 @@ import os
 import urllib.parse
 from werkzeug.security import generate_password_hash
 from collections import defaultdict
-from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
@@ -46,7 +45,7 @@ def validate_date(date_string):
         return datetime.now().strftime('%Y-%m-%d')
 
 def init_db():
-    """Inizializza il database PostgreSQL"""
+    """Inizializza il database PostgreSQL e aggiunge la colonna 'archiviato'"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -73,6 +72,7 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 filiale TEXT,
                 utente TEXT,
+                utente TEXT,
                 nome_utente TEXT,
                 mail TEXT UNIQUE,
                 password_hash TEXT,
@@ -91,7 +91,7 @@ def init_db():
         if not cursor.fetchone():
             cursor.execute('ALTER TABLE scontrini ADD COLUMN archiviato BOOLEAN DEFAULT FALSE')
             print("Colonna 'archiviato' aggiunta a 'scontrini'.")
-
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -113,7 +113,7 @@ def index():
         
         cursor.execute('SELECT * FROM scontrini WHERE archiviato = FALSE ORDER BY data_inserimento DESC LIMIT 5')
         ultimi_scontrini = cursor.fetchall()
-
+        
         cursor.execute('SELECT COUNT(*) FROM scontrini WHERE archiviato = TRUE')
         num_archiviati = cursor.fetchone()['count']
         
@@ -225,7 +225,6 @@ def lista_scontrini():
         print(f"Errore nella lista: {e}")
         return f"Errore: {e}", 500
 
-# NUOVA ROUTE per l'archivio
 @app.route('/archivio')
 def archivio():
     try:
@@ -240,7 +239,6 @@ def archivio():
         print(f"Errore nel caricamento dell'archivio: {e}")
         return f"Errore: {e}", 500
 
-# NUOVA ROUTE per archiviare uno scontrino
 @app.route('/archivia/<int:id>')
 def archivia_scontrino(id):
     try:
@@ -257,7 +255,6 @@ def archivia_scontrino(id):
         flash(f"Errore durante l'archiviazione: {e}", 'danger')
         return redirect(url_for('lista_scontrini'))
 
-# NUOVA ROUTE per annullare l'archiviazione
 @app.route('/annulla_archiviazione/<int:id>')
 def annulla_archiviazione(id):
     try:
@@ -297,7 +294,7 @@ def annulla_versamento(id):
         conn.commit()
         cursor.close()
         conn.close()
-        return redirect(request.referrer or url_for('lista_scontrini'))
+        return redirect(url_for('lista_scontrini'))
     except Exception as e:
         print(f"Errore nell'annullamento versamento: {e}")
         return f"Errore: {e}", 500
