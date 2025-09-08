@@ -342,7 +342,99 @@ def aggiungi_utente():
                 conn.close()
 
     return render_template('aggiungi_utente.html')
+    # Aggiungi questa route al tuo file Flask dopo la route /aggiungi-utente
 
+@app.route('/lista-utenti')
+def lista_utenti():
+    """Visualizza la lista di tutti gli utenti registrati"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, filiale, utente, nome_utente, mail, 
+                   campo_libero1, campo_libero2, created_at
+            FROM users 
+            ORDER BY created_at DESC
+        ''')
+        utenti = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('lista_utenti.html', utenti=utenti)
+        
+    except Exception as e:
+        print(f"Errore nella lista utenti: {e}")
+        return f"Errore nel caricamento degli utenti: {e}", 500
+
+@app.route('/modifica-utente/<int:id>', methods=['GET', 'POST'])
+def modifica_utente(id):
+    """Modifica un utente esistente"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if request.method == 'POST':
+            filiale = request.form.get('filiale')
+            utente = request.form.get('utente')
+            nome_utente = request.form.get('nome_utente')
+            mail = request.form.get('mail')
+            campo1 = request.form.get('campo_libero1')
+            campo2 = request.form.get('campo_libero2')
+            
+            # Validazione base
+            if not mail:
+                raise ValueError("Email è obbligatoria")
+            
+            cursor.execute('''
+                UPDATE users 
+                SET filiale=%s, utente=%s, nome_utente=%s, mail=%s, 
+                    campo_libero1=%s, campo_libero2=%s
+                WHERE id=%s
+            ''', (filiale, utente, nome_utente, mail, campo1, campo2, id))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return redirect(url_for('lista_utenti'))
+        
+        # GET - mostra form di modifica
+        cursor.execute('SELECT * FROM users WHERE id = %s', (id,))
+        utente_data = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        if utente_data is None:
+            return redirect(url_for('lista_utenti'))
+        
+        return render_template('modifica_utente.html', utente=utente_data)
+        
+    except Exception as e:
+        print(f"Errore nella modifica utente: {e}")
+        return f"Errore: {e}", 500
+
+@app.route('/elimina-utente/<int:id>')
+def elimina_utente(id):
+    """Elimina un utente"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM users WHERE id = %s', (id,))
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        return redirect(url_for('lista_utenti'))
+        
+    except Exception as e:
+        print(f"Errore nell'eliminazione utente: {e}")
+        return f"Errore: {e}", 500
+        
 @app.route('/modifica/<int:id>', methods=['GET', 'POST'])
 def modifica_scontrino(id):
     try:
