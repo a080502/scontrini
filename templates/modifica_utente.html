@@ -6,6 +6,11 @@
 <div class="card">
     <h3>Modifica Utente</h3>
 
+    <p style="text-align: right;">
+        <a href="{{ url_for('index') }}" class="btn">Dashboard</a>
+        <a href="{{ url_for('lista_utenti') }}" class="btn">Lista Utenti</a>
+    </p>
+
     {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
