@@ -405,7 +405,12 @@ def elimina_utente(id):
     except Exception as e:
         print(f"Errore eliminazione utente: {e}")
         return f"Errore: {e}", 500
-
+@app.route('/_routes')
+def _show_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append(f"{rule.endpoint} -> {rule} ")
+    return "<pre>" + "\n".join(sorted(routes)) + "</pre>"
 # ... (le altre route esistenti come incassa_scontrino, elimina_scontrino, api, diagnose, ecc.)
 # Mantengo il resto del file invariato e sotto ci sono le route già definite in precedenza.
 # Per brevità non duplico qui tutte le route già presenti; conserva il resto del file così com'è.
