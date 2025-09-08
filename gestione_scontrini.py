@@ -4,6 +4,7 @@ import psycopg2.extras
 from datetime import datetime
 import os
 import urllib.parse
+from werkzeug.security import generate_password_hash  # <-- aggiunto
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
@@ -112,6 +113,21 @@ def init_db():
                 incassato BOOLEAN DEFAULT FALSE,
                 data_incasso TIMESTAMP NULL,
                 data_inserimento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Crea la tabella users se non esiste (per gestione utenti)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                filiale TEXT,
+                utente TEXT,
+                nome_utente TEXT,
+                mail TEXT UNIQUE,
+                password_hash TEXT,
+                campo_libero1 TEXT,
+                campo_libero2 TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
@@ -277,6 +293,55 @@ def aggiungi_scontrino():
             return f"Errore: {e}", 500
     
     return render_template('aggiungi.html')
+
+@app.route('/aggiungi-utente', methods=['GET', 'POST'])
+def aggiungi_utente():
+    """Pagina per aggiungere un utente al database (crea la tabella users se non presente)"""
+    if request.method == 'POST':
+        filiale = request.form.get('filiale')
+        utente = request.form.get('utente')
+        nome_utente = request.form.get('nome_utente')
+        mail = request.form.get('mail')
+        password = request.form.get('password')
+        campo1 = request.form.get('campo_libero1')
+        campo2 = request.form.get('campo_libero2')
+
+        # Validazioni minime
+        if not mail or not password:
+            error = "Email e password sono obbligatori."
+            return render_template('aggiungi_utente.html', error=error, form=request.form)
+        
+        password_hash = generate_password_hash(password)
+
+        conn = None
+        cursor = None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO users (filiale, utente, nome_utente, mail, password_hash, campo_libero1, campo_libero2)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (filiale, utente, nome_utente, mail, password_hash, campo1, campo2))
+            conn.commit()
+            return redirect(url_for('index'))
+        except psycopg2.IntegrityError as e:
+            # ad esempio violazione unique su mail
+            if conn:
+                conn.rollback()
+            error = "Errore: la mail risulta già presente nel database."
+            return render_template('aggiungi_utente.html', error=error, form=request.form)
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            print(f"Errore aggiunta utente: {e}")
+            return f"Errore: {e}", 500
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+    return render_template('aggiungi_utente.html')
 
 @app.route('/modifica/<int:id>', methods=['GET', 'POST'])
 def modifica_scontrino(id):
