@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import urllib.parse
 from werkzeug.security import generate_password_hash
+from collections import defaultdict
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
@@ -51,7 +52,6 @@ def init_db():
         
         print("Inizializzazione database...")
         
-        # Crea la tabella scontrini se non esiste
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS scontrini (
                 id SERIAL PRIMARY KEY,
@@ -67,7 +67,6 @@ def init_db():
             )
         ''')
         
-        # Crea la tabella users se non esiste
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -82,7 +81,6 @@ def init_db():
             )
         ''')
         
-        # Verifica e aggiungi colonne mancanti alla tabella scontrini
         cursor.execute("""
             SELECT column_name 
             FROM information_schema.columns 
@@ -162,22 +160,51 @@ def lista_scontrini():
         cursor = conn.cursor()
         
         base_query = 'SELECT * FROM scontrini'
+        # Ordina per nome per facilitare il raggruppamento
+        order_clause = ' ORDER BY nome_scontrino, data_scontrino DESC'
         
         if filtro == 'incassati':
-            cursor.execute(base_query + ' WHERE incassato = TRUE ORDER BY data_scontrino DESC, data_inserimento DESC')
+            cursor.execute(base_query + ' WHERE incassato = TRUE' + order_clause)
             titolo = "Scontrini Incassati"
         elif filtro == 'da_incassare':
-            cursor.execute(base_query + ' WHERE incassato = FALSE ORDER BY data_scontrino DESC, data_inserimento DESC')
+            cursor.execute(base_query + ' WHERE incassato = FALSE' + order_clause)
             titolo = "Scontrini da Incassare"
         else:
-            cursor.execute(base_query + ' ORDER BY data_scontrino DESC, data_inserimento DESC')
+            cursor.execute(base_query + order_clause)
             titolo = "Tutti gli Scontrini"
         
         scontrini = cursor.fetchall()
         cursor.close()
         conn.close()
         
-        # Calcoli finanziari basati sul filtro
+        # --- LOGICA DI RAGGRUPPAMENTO E SUBTOTALI ---
+        scontrini_raggruppati = defaultdict(lambda: {
+            'scontrini': [],
+            'subtotali': defaultdict(float)
+        })
+
+        for s in scontrini:
+            nome = s['nome_scontrino']
+            gruppo = scontrini_raggruppati[nome]
+
+            gruppo['scontrini'].append(s)
+            
+            importo_versare = float(s['importo_versare'] or 0)
+            importo_incassare = float(s['importo_incassare'] or 0)
+            
+            gruppo['subtotali']['importo_versare'] += importo_versare
+            gruppo['subtotali']['importo_incassare'] += importo_incassare
+            
+            if s['incassato']:
+                gruppo['subtotali']['incassato'] += importo_incassare
+            if s['versato']:
+                gruppo['subtotali']['versato'] += importo_versare
+
+        # Calcola la cassa per ogni gruppo
+        for nome, gruppo in scontrini_raggruppati.items():
+            gruppo['subtotali']['cassa'] = gruppo['subtotali']['incassato'] - gruppo['subtotali']['versato']
+        
+        # Calcoli totali generali (per il riepilogo in alto)
         totale_versare_filtrato = sum(float(s['importo_versare'] or 0) for s in scontrini)
         totale_incassare_filtrato = sum(float(s['importo_incassare'] or 0) for s in scontrini)
         totale_incassato = sum(float(s['importo_incassare'] or 0) for s in scontrini if s['incassato'])
@@ -187,7 +214,7 @@ def lista_scontrini():
         cassa = totale_incassato - totale_versato
 
         return render_template('lista.html', 
-                             scontrini=scontrini,
+                             scontrini_raggruppati=scontrini_raggruppati,
                              totale_versare_filtrato=totale_versare_filtrato,
                              totale_incassare_filtrato=totale_incassare_filtrato,
                              totale_incassato=totale_incassato,
@@ -196,16 +223,14 @@ def lista_scontrini():
                              ancora_da_versare=ancora_da_versare,
                              cassa=cassa,
                              filtro=filtro,
-                             titolo=titolo)
+                             titolo=titolo,
+                             num_elementi=len(scontrini))
     except Exception as e:
         print(f"Errore nella lista: {e}")
         return f"Errore: {e}", 500
 
-# --- NUOVE ROUTE PER IL VERSAMENTO ---
-
 @app.route('/versa/<int:id>')
 def versa_scontrino(id):
-    """Imposta uno scontrino come versato."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -220,7 +245,6 @@ def versa_scontrino(id):
 
 @app.route('/annulla_versamento/<int:id>')
 def annulla_versamento(id):
-    """Annulla lo stato di versato per uno scontrino."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -232,8 +256,6 @@ def annulla_versamento(id):
     except Exception as e:
         print(f"Errore nell'annullamento versamento: {e}")
         return f"Errore: {e}", 500
-
-# --- ROUTE ESISTENTI (invariate o con modifiche minori) ---
 
 @app.route('/aggiungi', methods=['GET', 'POST'])
 def aggiungi_scontrino():
@@ -316,7 +338,6 @@ def annulla_incasso(id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Quando si annulla un incasso, si annulla anche il versamento associato
         cursor.execute('UPDATE scontrini SET incassato = FALSE, data_incasso = NULL, versato = FALSE, data_versamento = NULL WHERE id = %s', (id,))
         conn.commit()
         cursor.close()
@@ -340,10 +361,8 @@ def elimina_scontrino(id):
         print(f"Errore nell'eliminazione: {e}")
         return f"Errore: {e}", 500
 
-# ... (tutte le altre route per la gestione utenti rimangono invariate) ...
 @app.route('/aggiungi-utente', methods=['GET', 'POST'])
 def aggiungi_utente():
-    """Pagina per aggiungere un utente al database (crea la tabella users se non presente)"""
     if request.method == 'POST':
         filiale = request.form.get('filiale')
         utente = request.form.get('utente')
@@ -358,9 +377,7 @@ def aggiungi_utente():
             return render_template('aggiungi_utente.html', error=error, form=request.form)
         
         password_hash = generate_password_hash(password)
-
         conn = None
-        cursor = None
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
@@ -370,33 +387,26 @@ def aggiungi_utente():
             ''', (filiale, utente, nome_utente, mail, password_hash, campo1, campo2))
             conn.commit()
             return redirect(url_for('index'))
-        except psycopg2.IntegrityError as e:
-            if conn:
-                conn.rollback()
+        except psycopg2.IntegrityError:
+            if conn: conn.rollback()
             error = "Errore: la mail risulta già presente nel database."
             return render_template('aggiungi_utente.html', error=error, form=request.form)
         except Exception as e:
-            if conn:
-                conn.rollback()
+            if conn: conn.rollback()
             print(f"Errore aggiunta utente: {e}")
             return f"Errore: {e}", 500
         finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+            if conn: conn.close()
 
     return render_template('aggiungi_utente.html')
 
 @app.route('/lista-utenti')
 def lista_utenti():
-    """Visualizza la lista di tutti gli utenti registrati"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT id, filiale, utente, nome_utente, mail, campo_libero1, campo_libero2, created_at FROM users ORDER BY created_at DESC')
         utenti = cursor.fetchall()
-        cursor.close()
         conn.close()
         return render_template('lista_utenti.html', utenti=utenti)
     except Exception as e:
