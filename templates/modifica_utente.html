@@ -17,25 +17,25 @@
 
     <form method="post">
         <label>FILIALE</label>
-        <input type="text" name="filiale" value="{{ user.filiale or '' }}" />
+        <input type="text" name="filiale" value="{{ utente.filiale or '' }}" />
 
         <label>UTENTE</label>
-        <input type="text" name="utente" value="{{ user.utente or '' }}" />
+        <input type="text" name="utente" value="{{ utente.utente or '' }}" />
 
         <label>NOME UTENTE</label>
-        <input type="text" name="nome_utente" value="{{ user.nome_utente or '' }}" />
+        <input type="text" name="nome_utente" value="{{ utente.nome_utente or '' }}" />
 
         <label>MAIL</label>
-        <input type="email" name="mail" value="{{ user.mail or '' }}" required />
+        <input type="email" name="mail" value="{{ utente.mail or '' }}" required />
 
         <label>PASSWORD (lascia vuoto per non cambiare)</label>
         <input type="password" name="password" value="" />
 
         <label>CAMPO LIBERO1</label>
-        <input type="text" name="campo_libero1" value="{{ user.campo_libero1 or '' }}" />
+        <input type="text" name="campo_libero1" value="{{ utente.campo_libero1 or '' }}" />
 
         <label>CAMPO LIBERO2</label>
-        <input type="text" name="campo_libero2" value="{{ user.campo_libero2 or '' }}" />
+        <input type="text" name="campo_libero2" value="{{ utente.campo_libero2 or '' }}" />
 
         <div style="margin-top: 12px;">
             <button type="submit" class="btn btn-primary">Salva Modifiche</button>
