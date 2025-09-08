@@ -3,6 +3,10 @@
 {% block header %}Dashboard - Gestione Scontrini Fiscali{% endblock %}
 
 {% block content %}
+<p style="text-align: right;">
+    <a href="{{ url_for('aggiungi_utente') }}" class="btn btn-secondary">Aggiungi Utente</a>
+</p>
+
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-number">{{ num_scontrini }}</div>
