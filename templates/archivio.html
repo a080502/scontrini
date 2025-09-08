@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Archivio Scontrini{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .card-group {
+        border: 1px solid #ddd; border-radius: 8px; margin-bottom: 25px;
+        padding: 15px; background-color: #f9f9f9;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .card-group h3 {
+        margin-top: 0; border-bottom: 2px solid #6c757d;
+        padding-bottom: 10px; color: #333;
+    }
+    .subtotal-row { background-color: #e9ecef; font-weight: bold; }
+    .subtotal-row td { padding: 12px 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Riepilogo Totale Archivio</h3>
+    <p><strong>Totale Incassato e Archiviato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassato_archivio) }}</span></p>
+    <p><strong>Totale Versato e Archiviato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versato_archivio) }}</span></p>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h2>Archivio Scontrini Chiusi ({{ num_elementi }} elementi)</h2>
+    <a href="{{ url_for('lista_scontrini') }}" class="btn">&larr; Torna alla Lista Attiva</a>
+</div>
+
+
+{% if scontrini_raggruppati %}
+    {% for nome, gruppo in scontrini_raggruppati.items() %}
+        <div class="card-group">
+            <h3>Gruppo: {{ nome }} ({{ gruppo.scontrini|length }} elementi)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data Incasso</th>
+                        <th>Data Versamento</th>
+                        <th>Importo Versato</th>
+                        <th>Importo Incassato</th>
+                        <th>Azione</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scontrino in gruppo.scontrini %}
+                    <tr>
+                        <td>{{ scontrino.data_incasso.strftime('%Y-%m-%d %H:%M') if scontrino.data_incasso }}</td>
+                        <td>{{ scontrino.data_versamento.strftime('%Y-%m-%d %H:%M') if scontrino.data_versamento }}</td>
+                        <td class="euro">€ {{ "%.2f"|format(scontrino.importo_versare) }}</td>
+                        <td class="euro">€ {{ "%.2f"|format(scontrino.importo_incassare) }}</td>
+                        <td>
+                            <a href="{{ url_for('annulla_incasso', id=scontrino.id) }}" 
+                               class="btn btn-warning" 
+                               onclick="return confirm('Sei sicuro di voler ripristinare questo scontrino alla lista attiva?')">↶ Ripristina</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="subtotal-row">
+                        <td colspan="2"><strong>Subtotale Gruppo</strong></td>
+                        <td class="euro"><strong>€ {{ "%.2f"|format(gruppo.subtotali.importo_versare) }}</strong></td>
+                        <td class="euro"><strong>€ {{ "%.2f"|format(gruppo.subtotali.importo_incassare) }}</strong></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    {% endfor %}
+{% else %}
+<div class="card">
+    <p>L'archivio è vuoto.</p>
+</div>
+{% endif %}
+{% endblock %}
