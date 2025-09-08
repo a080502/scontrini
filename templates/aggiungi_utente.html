@@ -6,6 +6,11 @@
 <div class="card">
     <h3>Aggiungi Nuovo Utente</h3>
 
+    <p style="text-align: right;">
+        <a href="{{ url_for('index') }}" class="btn">Dashboard</a>
+        <a href="{{ url_for('lista_utenti') }}" class="btn">Lista Utenti</a>
+    </p>
+
     {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
@@ -34,7 +39,7 @@
 
         <div style="margin-top: 12px;">
             <button type="submit" class="btn btn-primary">Salva Utente</button>
-            <a href="{{ url_for('index') }}" class="btn">Annulla</a>
+            <a href="{{ url_for('lista_utenti') }}" class="btn">Annulla</a>
         </div>
     </form>
 </div>
