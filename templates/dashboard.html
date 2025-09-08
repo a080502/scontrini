@@ -28,16 +28,19 @@
 </div>
 
 <div class="totali">
-    <h3>Riepilogo Finanziario</h3>
-    <p><strong>Totale da Versare!:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versare) }}</span></p>
-    <p><strong>Totale da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare) }}</span></p>
+    <h3>Riepilogo Finanziario Generale</h3>
+    <p><strong>Totale da Incassare (lordo):</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare) }}</span></p>
     <p><strong>Già Incassato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassato) }}</span></p>
     <p><strong>Ancora da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_da_incassare) }}</span></p>
-    <p><strong>Saldo Finale:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare - totale_versare) }}</span></p>
+    <hr>
+    <p><strong>Già Versato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versato) }}</span></p>
+    <p><strong>Ancora da Versare:</strong> <span class="euro">€ {{ "%.2f"|format(ancora_da_versare) }}</span></p>
+    <hr>
+    <p><strong>Cassa (Incassato - Versato):</strong> <span class="euro">€ {{ "%.2f"|format(cassa) }}</span></p>
 </div>
 
 <div class="card">
-    <h3>Ultimi Scontrini Inseriti</h3>
+    <h3>Ultimi 5 Scontrini Inseriti</h3>
     {% if ultimi_scontrini %}
     <table>
         <thead>
@@ -45,14 +48,14 @@
                 <th>Data</th>
                 <th>Nome</th>
                 <th>Da Incassare</th>
-                <th>Stato</th>
+                <th>Stato Incasso</th>
                 <th>Azioni</th>
             </tr>
         </thead>
         <tbody>
             {% for scontrino in ultimi_scontrini %}
-            <tr {% if scontrino.incassato %}class="incassato"{% endif %}>
-                <td>{{ scontrino.data_scontrino }}</td>
+            <tr class="{{ 'incassato' if scontrino.incassato else '' }} {{ 'versato' if scontrino.versato else '' }}">
+                <td>{{ scontrino.data_scontrino.strftime('%Y-%m-%d') if scontrino.data_scontrino }}</td>
                 <td>{{ scontrino.nome_scontrino }}</td>
                 <td class="euro">€ {{ "%.2f"|format(scontrino.importo_incassare) }}</td>
                 <td>
