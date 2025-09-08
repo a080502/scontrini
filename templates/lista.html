@@ -4,12 +4,15 @@
 
 {% block content %}
 <div class="card">
-    <p><strong>Totale da Versare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versare) }}</span></p>
-    <p><strong>Totale da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare) }}</span></p>
-    {% if filtro == 'tutti' %}
+    <h3>Riepilogo del Filtro Corrente</h3>
+    <p><strong>Totale da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassare_filtrato) }}</span></p>
     <p><strong>Già Incassato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_incassato) }}</span></p>
     <p><strong>Ancora da Incassare:</strong> <span class="euro">€ {{ "%.2f"|format(totale_da_incassare) }}</span></p>
-    {% endif %}
+    <hr>
+    <p><strong>Già Versato:</strong> <span class="euro">€ {{ "%.2f"|format(totale_versato) }}</span></p>
+    <p><strong>Ancora da Versare:</strong> <span class="euro">€ {{ "%.2f"|format(ancora_da_versare) }}</span></p>
+    <hr>
+    <p><strong>Cassa (Incassato - Versato):</strong> <span class="euro">€ {{ "%.2f"|format(cassa) }}</span></p>
 </div>
 
 <h2>{{ titolo }} ({{ scontrini|length }} elementi)</h2>
@@ -17,18 +20,19 @@
 <table>
     <thead>
         <tr>
-            <th>Data Scontrino</th>
-            <th>Nome Scontrino</th>
+            <th>Data</th>
+            <th>Nome</th>
             <th>Importo da Versare</th>
             <th>Importo da Incassare</th>
-            <th>Stato</th>
+            <th>Stato Incasso</th>
+            <th>Stato Versamento</th>
             <th>Azioni</th>
         </tr>
     </thead>
     <tbody>
         {% for scontrino in scontrini %}
-        <tr {% if scontrino.incassato %}class="incassato"{% endif %}>
-            <td>{{ scontrino.data_scontrino }}</td>
+        <tr class="{{ 'incassato' if scontrino.incassato else '' }} {{ 'versato' if scontrino.versato else '' }}">
+            <td>{{ scontrino.data_scontrino.strftime('%Y-%m-%d') if scontrino.data_scontrino }}</td>
             <td>{{ scontrino.nome_scontrino }}</td>
             <td class="euro">€ {{ "%.2f"|format(scontrino.importo_versare) }}</td>
             <td class="euro">€ {{ "%.2f"|format(scontrino.importo_incassare) }}</td>
@@ -43,19 +47,44 @@
                 {% endif %}
             </td>
             <td>
+                {% if scontrino.versato %}
+                    <span class="badge badge-info">✓ Versato</span>
+                    {% if scontrino.data_versamento %}
+                        <br><small>{{ scontrino.data_versamento.strftime('%Y-%m-%d %H:%M') }}</small>
+                    {% endif %}
+                {% else %}
+                    <span class="badge badge-secondary">⏳ Da versare</span>
+                {% endif %}
+            </td>
+            <td>
+                {# Azioni Incasso #}
                 {% if not scontrino.incassato %}
                     <a href="{{ url_for('incassa_scontrino', id=scontrino.id) }}" 
                        class="btn btn-success" 
-                       onclick="return confirm('Confermi di aver incassato questo scontrino?')">✓ Incassa</a>
+                       onclick="return confirm('Confermi di aver INCASSATO questo scontrino?')">✓ Incassa</a>
                 {% else %}
                     <a href="{{ url_for('annulla_incasso', id=scontrino.id) }}" 
                        class="btn btn-warning" 
-                       onclick="return confirm('Sei sicuro di voler ripristinare questo scontrino?')">↶ Ripristina</a>
+                       onclick="return confirm('ATTENZIONE: Annullando l\'incasso annullerai anche il versamento.\nSei sicuro di voler RIPRISTINARE questo scontrino?')">↶ Ripristina Incasso</a>
                 {% endif %}
+
+                {# Azioni Versamento (visibili solo se incassato) #}
+                {% if scontrino.incassato %}
+                    {% if not scontrino.versato %}
+                        <a href="{{ url_for('versa_scontrino', id=scontrino.id) }}" 
+                           class="btn btn-info" 
+                           onclick="return confirm('Confermi di aver VERSATO questo importo?')">💰 Versa</a>
+                    {% else %}
+                        <a href="{{ url_for('annulla_versamento', id=scontrino.id) }}" 
+                           class="btn btn-secondary" 
+                           onclick="return confirm('Sei sicuro di voler ANNULLARE il versamento?')">↶ Annulla Versamento</a>
+                    {% endif %}
+                {% endif %}
+
                 <a href="{{ url_for('modifica_scontrino', id=scontrino.id) }}" class="btn">Modifica</a>
                 <a href="{{ url_for('elimina_scontrino', id=scontrino.id) }}" 
                    class="btn btn-danger" 
-                   onclick="return confirm('Sei sicuro di voler eliminare questo scontrino?')">Elimina</a>
+                   onclick="return confirm('Sei sicuro di voler ELIMINARE questo scontrino?')">Elimina</a>
             </td>
         </tr>
         {% endfor %}
