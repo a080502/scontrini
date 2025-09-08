@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
@@ -6,6 +6,7 @@ import os
 import urllib.parse
 from werkzeug.security import generate_password_hash
 from collections import defaultdict
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
@@ -81,22 +82,16 @@ def init_db():
             )
         ''')
         
+        # Aggiunta della colonna 'archiviato' se non esiste già
         cursor.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'scontrini' AND table_schema = 'public'
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'scontrini' AND table_schema = 'public' AND column_name = 'archiviato'
         """)
-        columns = [row['column_name'] for row in cursor.fetchall()]
-        
-        if 'incassato' not in columns:
-            cursor.execute('ALTER TABLE scontrini ADD COLUMN incassato BOOLEAN DEFAULT FALSE')
-        if 'data_incasso' not in columns:
-            cursor.execute('ALTER TABLE scontrini ADD COLUMN data_incasso TIMESTAMP NULL')
-        if 'versato' not in columns:
-            cursor.execute('ALTER TABLE scontrini ADD COLUMN versato BOOLEAN DEFAULT FALSE')
-        if 'data_versamento' not in columns:
-            cursor.execute('ALTER TABLE scontrini ADD COLUMN data_versamento TIMESTAMP NULL')
-            
+        if not cursor.fetchone():
+            cursor.execute('ALTER TABLE scontrini ADD COLUMN archiviato BOOLEAN DEFAULT FALSE')
+            print("Colonna 'archiviato' aggiunta a 'scontrini'.")
+
         conn.commit()
         cursor.close()
         conn.close()
@@ -112,11 +107,15 @@ def index():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM scontrini')
+        # Le query ora escludono gli scontrini archiviati
+        cursor.execute('SELECT * FROM scontrini WHERE archiviato = FALSE')
         scontrini = cursor.fetchall()
         
-        cursor.execute('SELECT * FROM scontrini ORDER BY data_inserimento DESC LIMIT 5')
+        cursor.execute('SELECT * FROM scontrini WHERE archiviato = FALSE ORDER BY data_inserimento DESC LIMIT 5')
         ultimi_scontrini = cursor.fetchall()
+
+        cursor.execute('SELECT COUNT(*) FROM scontrini WHERE archiviato = TRUE')
+        num_archiviati = cursor.fetchone()['count']
         
         cursor.close()
         conn.close()
@@ -137,17 +136,18 @@ def index():
         num_da_incassare = num_scontrini - num_incassati
         
         return render_template('dashboard.html', 
-                             ultimi_scontrini=ultimi_scontrini,
-                             totale_da_versare_complessivo=totale_da_versare_complessivo,
-                             totale_incassare=totale_incassare,
-                             totale_incassato=totale_incassato,
-                             totale_da_incassare=totale_da_incassare,
-                             totale_versato=totale_versato,
-                             ancora_da_versare=ancora_da_versare,
-                             cassa=cassa,
-                             num_scontrini=num_scontrini,
-                             num_incassati=num_incassati,
-                             num_da_incassare=num_da_incassare)
+                               ultimi_scontrini=ultimi_scontrini,
+                               totale_da_versare_complessivo=totale_da_versare_complessivo,
+                               totale_incassare=totale_incassare,
+                               totale_incassato=totale_incassato,
+                               totale_da_incassare=totale_da_incassare,
+                               totale_versato=totale_versato,
+                               ancora_da_versare=ancora_da_versare,
+                               cassa=cassa,
+                               num_scontrini=num_scontrini,
+                               num_incassati=num_incassati,
+                               num_da_incassare=num_da_incassare,
+                               num_archiviati=num_archiviati) # Passa il numero di archiviati
     except Exception as e:
         print(f"Errore nella homepage: {e}")
         return f"Errore: {e}", 500
@@ -159,15 +159,14 @@ def lista_scontrini():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        base_query = 'SELECT * FROM scontrini'
-        # Ordina per nome per facilitare il raggruppamento
+        base_query = 'SELECT * FROM scontrini WHERE archiviato = FALSE'
         order_clause = ' ORDER BY nome_scontrino, data_scontrino DESC'
         
         if filtro == 'incassati':
-            cursor.execute(base_query + ' WHERE incassato = TRUE' + order_clause)
+            cursor.execute(base_query + ' AND incassato = TRUE' + order_clause)
             titolo = "Scontrini Incassati"
         elif filtro == 'da_incassare':
-            cursor.execute(base_query + ' WHERE incassato = FALSE' + order_clause)
+            cursor.execute(base_query + ' AND incassato = FALSE' + order_clause)
             titolo = "Scontrini da Incassare"
         else:
             cursor.execute(base_query + order_clause)
@@ -177,7 +176,6 @@ def lista_scontrini():
         cursor.close()
         conn.close()
         
-        # --- LOGICA DI RAGGRUPPAMENTO E SUBTOTALI ---
         scontrini_raggruppati = defaultdict(lambda: {
             'scontrini': [],
             'subtotali': defaultdict(float)
@@ -200,11 +198,9 @@ def lista_scontrini():
             if s['versato']:
                 gruppo['subtotali']['versato'] += importo_versare
 
-        # Calcola la cassa per ogni gruppo
         for nome, gruppo in scontrini_raggruppati.items():
             gruppo['subtotali']['cassa'] = gruppo['subtotali']['incassato'] - gruppo['subtotali']['versato']
-        
-        # Calcoli totali generali (per il riepilogo in alto)
+            
         totale_versare_filtrato = sum(float(s['importo_versare'] or 0) for s in scontrini)
         totale_incassare_filtrato = sum(float(s['importo_incassare'] or 0) for s in scontrini)
         totale_incassato = sum(float(s['importo_incassare'] or 0) for s in scontrini if s['incassato'])
@@ -214,20 +210,69 @@ def lista_scontrini():
         cassa = totale_incassato - totale_versato
 
         return render_template('lista.html', 
-                             scontrini_raggruppati=scontrini_raggruppati,
-                             totale_versare_filtrato=totale_versare_filtrato,
-                             totale_incassare_filtrato=totale_incassare_filtrato,
-                             totale_incassato=totale_incassato,
-                             totale_da_incassare=totale_da_incassare,
-                             totale_versato=totale_versato,
-                             ancora_da_versare=ancora_da_versare,
-                             cassa=cassa,
-                             filtro=filtro,
-                             titolo=titolo,
-                             num_elementi=len(scontrini))
+                               scontrini_raggruppati=scontrini_raggruppati,
+                               totale_versare_filtrato=totale_versare_filtrato,
+                               totale_incassare_filtrato=totale_incassare_filtrato,
+                               totale_incassato=totale_incassato,
+                               totale_da_incassare=totale_da_incassare,
+                               totale_versato=totale_versato,
+                               ancora_da_versare=ancora_da_versare,
+                               cassa=cassa,
+                               filtro=filtro,
+                               titolo=titolo,
+                               num_elementi=len(scontrini))
     except Exception as e:
         print(f"Errore nella lista: {e}")
         return f"Errore: {e}", 500
+
+# NUOVA ROUTE per l'archivio
+@app.route('/archivio')
+def archivio():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM scontrini WHERE archiviato = TRUE ORDER BY data_inserimento DESC')
+        scontrini_archiviati = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return render_template('archivio.html', scontrini_archiviati=scontrini_archiviati)
+    except Exception as e:
+        print(f"Errore nel caricamento dell'archivio: {e}")
+        return f"Errore: {e}", 500
+
+# NUOVA ROUTE per archiviare uno scontrino
+@app.route('/archivia/<int:id>')
+def archivia_scontrino(id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE scontrini SET archiviato = TRUE WHERE id = %s', (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash('Scontrino archiviato con successo!', 'success')
+        return redirect(url_for('lista_scontrini'))
+    except Exception as e:
+        print(f"Errore nell'archiviazione: {e}")
+        flash(f"Errore durante l'archiviazione: {e}", 'danger')
+        return redirect(url_for('lista_scontrini'))
+
+# NUOVA ROUTE per annullare l'archiviazione
+@app.route('/annulla_archiviazione/<int:id>')
+def annulla_archiviazione(id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE scontrini SET archiviato = FALSE WHERE id = %s', (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash('Archiviazione annullata con successo!', 'success')
+        return redirect(url_for('archivio'))
+    except Exception as e:
+        print(f"Errore nell'annullamento archiviazione: {e}")
+        flash(f"Errore durante l'annullamento archiviazione: {e}", 'danger')
+        return redirect(url_for('archivio'))
 
 @app.route('/versa/<int:id>')
 def versa_scontrino(id):
@@ -269,7 +314,7 @@ def aggiungi_scontrino():
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO scontrini (data_scontrino, nome_scontrino, importo_versare, importo_incassare) 
+                INSERT INTO scontrini (data_scontrino, nome_scontrino, importo_versare, importo_incassare)
                 VALUES (%s, %s, %s, %s)
             ''', (data_scontrino, nome_scontrino, importo_versare, importo_incassare))
             conn.commit()
@@ -296,8 +341,8 @@ def modifica_scontrino(id):
             importo_incassare = float(request.form['importo_incassare'] or 0)
             
             cursor.execute('''
-                UPDATE scontrini 
-                SET data_scontrino=%s, nome_scontrino=%s, importo_versare=%s, importo_incassare=%s 
+                UPDATE scontrini
+                SET data_scontrino=%s, nome_scontrino=%s, importo_versare=%s, importo_incassare=%s
                 WHERE id=%s
             ''', (data_scontrino, nome_scontrino, importo_versare, importo_incassare, id))
             conn.commit()
