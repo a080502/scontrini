@@ -6,6 +6,7 @@ import os
 import urllib.parse
 from werkzeug.security import generate_password_hash
 from collections import defaultdict
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'default-dev-key')
@@ -52,6 +53,7 @@ def init_db():
         
         print("Inizializzazione database...")
         
+        # Creazione della tabella scontrini
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS scontrini (
                 id SERIAL PRIMARY KEY,
@@ -63,15 +65,16 @@ def init_db():
                 data_incasso TIMESTAMP NULL,
                 versato BOOLEAN DEFAULT FALSE,
                 data_versamento TIMESTAMP NULL,
-                data_inserimento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                data_inserimento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                archiviato BOOLEAN DEFAULT FALSE
             )
         ''')
         
+        # Creazione della tabella users
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 filiale TEXT,
-                utente TEXT,
                 utente TEXT,
                 nome_utente TEXT,
                 mail TEXT UNIQUE,
@@ -82,7 +85,7 @@ def init_db():
             )
         ''')
         
-        # Aggiunta della colonna 'archiviato' se non esiste già
+        # Controllo e aggiunta della colonna 'archiviato' se non esiste
         cursor.execute("""
             SELECT column_name
             FROM information_schema.columns
@@ -107,7 +110,6 @@ def index():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Le query ora escludono gli scontrini archiviati
         cursor.execute('SELECT * FROM scontrini WHERE archiviato = FALSE')
         scontrini = cursor.fetchall()
         
@@ -147,7 +149,7 @@ def index():
                                num_scontrini=num_scontrini,
                                num_incassati=num_incassati,
                                num_da_incassare=num_da_incassare,
-                               num_archiviati=num_archiviati) # Passa il numero di archiviati
+                               num_archiviati=num_archiviati)
     except Exception as e:
         print(f"Errore nella homepage: {e}")
         return f"Errore: {e}", 500
@@ -230,11 +232,38 @@ def archivio():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
         cursor.execute('SELECT * FROM scontrini WHERE archiviato = TRUE ORDER BY data_inserimento DESC')
         scontrini_archiviati = cursor.fetchall()
+        
         cursor.close()
         conn.close()
-        return render_template('archivio.html', scontrini_archiviati=scontrini_archiviati)
+        
+        scontrini_raggruppati = defaultdict(lambda: {
+            'scontrini': [],
+            'subtotali': defaultdict(float)
+        })
+
+        for s in scontrini_archiviati:
+            nome = s['nome_scontrino']
+            gruppo = scontrini_raggruppati[nome]
+
+            gruppo['scontrini'].append(s)
+            
+            importo_versare = float(s['importo_versare'] or 0)
+            importo_incassare = float(s['importo_incassare'] or 0)
+            
+            gruppo['subtotali']['importo_versare'] += importo_versare
+            gruppo['subtotali']['importo_incassare'] += importo_incassare
+
+        totale_incassato_archivio = sum(float(s['importo_incassare'] or 0) for s in scontrini_archiviati)
+        totale_versato_archivio = sum(float(s['importo_versare'] or 0) for s in scontrini_archiviati)
+
+        return render_template('archivio.html', 
+                               scontrini_raggruppati=scontrini_raggruppati,
+                               num_elementi=len(scontrini_archiviati),
+                               totale_incassato_archivio=totale_incassato_archivio,
+                               totale_versato_archivio=totale_versato_archivio)
     except Exception as e:
         print(f"Errore nel caricamento dell'archivio: {e}")
         return f"Errore: {e}", 500
