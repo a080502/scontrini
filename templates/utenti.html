@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block header %}Gestione Utenti{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Utenti Registrati</h3>
+    <p style="text-align: right;">
+        <a href="{{ url_for('aggiungi_utente') }}" class="btn btn-primary">Aggiungi Nuovo Utente</a>
+    </p>
+
+    {% if users %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Filiale</th>
+                <th>Utente</th>
+                <th>Nome</th>
+                <th>Mail</th>
+                <th>Campo1</th>
+                <th>Campo2</th>
+                <th>Creato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.filiale }}</td>
+                <td>{{ u.utente }}</td>
+                <td>{{ u.nome_utente }}</td>
+                <td>{{ u.mail }}</td>
+                <td>{{ u.campo_libero1 }}</td>
+                <td>{{ u.campo_libero2 }}</td>
+                <td>{{ u.created_at }}</td>
+                <td>
+                    <a href="{{ url_for('modifica_utente', id=u.id) }}" class="btn">Modifica</a>
+                    <a href="{{ url_for('elimina_utente', id=u.id) }}" class="btn btn-danger" onclick="return confirm('Confermi eliminazione utente?')">Elimina</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Nessun utente registrato.</p>
+    {% endif %}
+</div>
+{% endblock %}
