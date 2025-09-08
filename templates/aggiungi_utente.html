@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block header %}Aggiungi Utente{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>Aggiungi Nuovo Utente</h3>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+        <label>FILIALE</label>
+        <input type="text" name="filiale" value="{{ form.filiale if form else '' }}" />
+
+        <label>UTENTE</label>
+        <input type="text" name="utente" value="{{ form.utente if form else '' }}" />
+
+        <label>NOME UTENTE</label>
+        <input type="text" name="nome_utente" value="{{ form.nome_utente if form else '' }}" />
+
+        <label>MAIL</label>
+        <input type="email" name="mail" value="{{ form.mail if form else '' }}" required />
+
+        <label>PASSWORD</label>
+        <input type="password" name="password" required />
+
+        <label>CAMPO LIBERO1</label>
+        <input type="text" name="campo_libero1" value="{{ form.campo_libero1 if form else '' }}" />
+
+        <label>CAMPO LIBERO2</label>
+        <input type="text" name="campo_libero2" value="{{ form.campo_libero2 if form else '' }}" />
+
+        <div style="margin-top: 12px;">
+            <button type="submit" class="btn btn-primary">Salva Utente</button>
+            <a href="{{ url_for('index') }}" class="btn">Annulla</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
