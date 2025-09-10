@@ -17,9 +17,46 @@
     .subtotal-row { background-color: #e9ecef; font-weight: bold; }
     .subtotal-row td { padding: 12px 8px; }
     .subtotal-details { font-size: 0.9em; text-align: right; }
+    
+    /* Stili per il pulsante toggle */
+    .toggle-controls {
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .btn-toggle {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-toggle:hover {
+        background-color: #5a6268;
+    }
+    
+    .btn-toggle.active {
+        background-color: #007bff;
+    }
+    
+    /* Classe per nascondere le colonne */
+    .hidden-column {
+        display: none !important;
+    }
+    
+    /* Animazione per la transizione */
+    .column-versare {
+        transition: all 0.3s ease;
+    }
 </style>
 {% endblock %}
-
 
 {% block content %}
 <div class="card">
@@ -32,6 +69,14 @@
     <a href="{{ url_for('archivio') }}" class="btn btn-info">Vai all'Archivio &rarr;</a>
 </div>
 
+<!-- Controlli per nascondere/mostrare colonne -->
+<div class="toggle-controls">
+    <label style="margin-right: 15px; font-weight: bold;">Visualizza colonne:</label>
+    <button id="toggleVersare" class="btn-toggle active" onclick="toggleColumn('versare')">
+        <span id="toggleVersareText">Nascondi</span> Importo Versare
+    </button>
+</div>
+
 {% if scontrini_raggruppati %}
     {% for nome, gruppo in scontrini_raggruppati.items() %}
         <div class="card-group">
@@ -39,15 +84,19 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Data</th><th>Importo Versare</th><th>Importo Incassare</th>
-                        <th>Stato Incasso</th><th>Stato Versamento</th><th>Azioni</th>
+                        <th>Data</th>
+                        <th class="column-versare">Importo Versare</th>
+                        <th>Importo Incassare</th>
+                        <th>Stato Incasso</th>
+                        <th>Stato Versamento</th>
+                        <th>Azioni</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for scontrino in gruppo.scontrini %}
                     <tr class="{{ 'incassato' if scontrino.incassato else '' }} {{ 'versato' if scontrino.versato else '' }}">
                         <td>{{ scontrino.data_scontrino.strftime('%Y-%m-%d') if scontrino.data_scontrino }}</td>
-                        <td class="euro">€ {{ "%.2f"|format(scontrino.importo_versare) }}</td>
+                        <td class="euro column-versare">€ {{ "%.2f"|format(scontrino.importo_versare) }}</td>
                         <td class="euro">€ {{ "%.2f"|format(scontrino.importo_incassare) }}</td>
                         <td>
                             {% if scontrino.incassato %}
@@ -83,7 +132,7 @@
                 <tfoot>
                     <tr class="subtotal-row">
                         <td><strong>Subtotale Gruppo</strong></td>
-                        <td class="euro"><strong>€ {{ "%.2f"|format(gruppo.subtotali.importo_versare) }}</strong></td>
+                        <td class="euro column-versare"><strong>€ {{ "%.2f"|format(gruppo.subtotali.importo_versare) }}</strong></td>
                         <td class="euro"><strong>€ {{ "%.2f"|format(gruppo.subtotali.importo_incassare) }}</strong></td>
                         <td colspan="3" class="subtotal-details">
                             Incassato: € {{ "%.2f"|format(gruppo.subtotali.incassato) }} | 
@@ -101,5 +150,50 @@
     <a href="{{ url_for('aggiungi_scontrino') }}" class="btn btn-success">Aggiungi Nuovo Scontrino</a>
 </div>
 {% endif %}
-{% endblock %}
 
+<script>
+function toggleColumn(columnType) {
+    const columns = document.querySelectorAll('.column-' + columnType);
+    const toggleBtn = document.getElementById('toggle' + columnType.charAt(0).toUpperCase() + columnType.slice(1));
+    const toggleText = document.getElementById('toggle' + columnType.charAt(0).toUpperCase() + columnType.slice(1) + 'Text');
+    
+    // Verifica lo stato attuale
+    const isHidden = columns[0].classList.contains('hidden-column');
+    
+    if (isHidden) {
+        // Mostra le colonne
+        columns.forEach(col => col.classList.remove('hidden-column'));
+        toggleBtn.classList.add('active');
+        toggleText.textContent = 'Nascondi';
+        
+        // Salva la preferenza
+        localStorage.setItem('show-' + columnType + '-column', 'true');
+    } else {
+        // Nascondi le colonne
+        columns.forEach(col => col.classList.add('hidden-column'));
+        toggleBtn.classList.remove('active');
+        toggleText.textContent = 'Mostra';
+        
+        // Salva la preferenza
+        localStorage.setItem('show-' + columnType + '-column', 'false');
+    }
+}
+
+// Ripristina lo stato delle colonne al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    const showVersare = localStorage.getItem('show-versare-column');
+    
+    if (showVersare === 'false') {
+        // Nascondi la colonna versare se era nascosta in precedenza
+        const versareColumns = document.querySelectorAll('.column-versare');
+        const toggleBtn = document.getElementById('toggleVersare');
+        const toggleText = document.getElementById('toggleVersareText');
+        
+        versareColumns.forEach(col => col.classList.add('hidden-column'));
+        toggleBtn.classList.remove('active');
+        toggleText.textContent = 'Mostra';
+    }
+});
+</script>
+
+{% endblock %}
