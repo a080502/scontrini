@@ -41,12 +41,12 @@
         background-color: #0056b3;
     }
     
-    /* Classe per nascondere le colonne */
     .hide-versare {
         display: none !important;
     }
 </style>
 {% endblock %}
+
 
 {% block content %}
 <div class="card">
@@ -61,7 +61,7 @@
 
 <!-- Controlli per nascondere/mostrare colonne -->
 <div class="toggle-controls">
-    <button class="btn-toggle" onclick="toggleVersareColumn()">
+    <button type="button" class="btn-toggle" onclick="toggleVersareColumn()">
         <span id="btnText">Nascondi Importo Versare</span>
     </button>
 </div>
@@ -73,12 +73,8 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Data</th>
-                        <th class="col-versare">Importo Versare</th>
-                        <th>Importo Incassare</th>
-                        <th>Stato Incasso</th>
-                        <th>Stato Versamento</th>
-                        <th>Azioni</th>
+                        <th>Data</th><th class="col-versare">Importo Versare</th><th>Importo Incassare</th>
+                        <th>Stato Incasso</th><th>Stato Versamento</th><th>Azioni</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -141,23 +137,20 @@
 {% endif %}
 
 <script>
-let isHidden = false;
-
 function toggleVersareColumn() {
-    const columns = document.querySelectorAll('.col-versare');
-    const btnText = document.getElementById('btnText');
+    var columns = document.getElementsByClassName('col-versare');
+    var btnText = document.getElementById('btnText');
+    var isHidden = columns.length > 0 && columns[0].style.display === 'none';
     
-    if (isHidden) {
-        // Mostra le colonne
-        columns.forEach(col => col.classList.remove('hide-versare'));
-        btnText.textContent = 'Nascondi Importo Versare';
-        isHidden = false;
-    } else {
-        // Nascondi le colonne
-        columns.forEach(col => col.classList.add('hide-versare'));
-        btnText.textContent = 'Mostra Importo Versare';
-        isHidden = true;
+    for (var i = 0; i < columns.length; i++) {
+        if (isHidden) {
+            columns[i].style.display = '';
+        } else {
+            columns[i].style.display = 'none';
+        }
     }
+    
+    btnText.textContent = isHidden ? 'Nascondi Importo Versare' : 'Mostra Importo Versare';
 }
 </script>
 
