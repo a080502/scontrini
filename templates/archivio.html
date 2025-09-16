@@ -27,8 +27,20 @@
 </div>
 
 <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h2>Archivio Scontrini Chiusi ({{ num_elementi }} elementi)</h2>
+    <h2>Archivio Scontrini Chiusi{% if search %} (Ricerca: '{{ search }}'){% endif %} ({{ num_elementi }} elementi)</h2>
     <a href="{{ url_for('lista_scontrini') }}" class="btn">&larr; Torna alla Lista Attiva</a>
+</div>
+
+<!-- Barra di ricerca per l'archivio -->
+<div class="search-controls">
+    <form method="GET" action="{{ url_for('archivio') }}" style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
+        <input type="text" name="search" placeholder="Cerca nell'archivio per nome scontrino o importo..." value="{{ search or '' }}" 
+               style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <button type="submit" class="btn" style="margin: 0;">🔍 Cerca</button>
+        {% if search %}
+        <a href="{{ url_for('archivio') }}" class="btn btn-secondary" style="margin: 0;">✖ Cancella</a>
+        {% endif %}
+    </form>
 </div>
 
 

@@ -158,21 +158,36 @@ def index():
 def lista_scontrini():
     try:
         filtro = request.args.get('filtro', 'tutti')
+        search = request.args.get('search', '').strip()
         conn = get_db_connection()
         cursor = conn.cursor()
         
         base_query = 'SELECT * FROM scontrini WHERE archiviato = FALSE'
+        params = []
+        
+        # Add search filter if provided
+        if search:
+            base_query += ' AND (nome_scontrino ILIKE %s OR CAST(importo_versare AS TEXT) ILIKE %s OR CAST(importo_incassare AS TEXT) ILIKE %s)'
+            search_param = f'%{search}%'
+            params.extend([search_param, search_param, search_param])
+        
         order_clause = ' ORDER BY nome_scontrino, data_scontrino DESC'
         
         if filtro == 'incassati':
-            cursor.execute(base_query + ' AND incassato = TRUE' + order_clause)
+            full_query = base_query + ' AND incassato = TRUE' + order_clause
             titolo = "Scontrini Incassati"
         elif filtro == 'da_incassare':
-            cursor.execute(base_query + ' AND incassato = FALSE' + order_clause)
+            full_query = base_query + ' AND incassato = FALSE' + order_clause
             titolo = "Scontrini da Incassare"
         else:
-            cursor.execute(base_query + order_clause)
+            full_query = base_query + order_clause
             titolo = "Tutti gli Scontrini"
+        
+        # Add search info to title if searching
+        if search:
+            titolo += f" (Ricerca: '{search}')"
+        
+        cursor.execute(full_query, params)
         
         scontrini = cursor.fetchall()
         cursor.close()
@@ -222,6 +237,7 @@ def lista_scontrini():
                                cassa=cassa,
                                filtro=filtro,
                                titolo=titolo,
+                               search=search,
                                num_elementi=len(scontrini))
     except Exception as e:
         print(f"Errore nella lista: {e}")
@@ -230,10 +246,22 @@ def lista_scontrini():
 @app.route('/archivio')
 def archivio():
     try:
+        search = request.args.get('search', '').strip()
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM scontrini WHERE archiviato = TRUE ORDER BY data_inserimento DESC')
+        base_query = 'SELECT * FROM scontrini WHERE archiviato = TRUE'
+        params = []
+        
+        # Add search filter if provided
+        if search:
+            base_query += ' AND (nome_scontrino ILIKE %s OR CAST(importo_versare AS TEXT) ILIKE %s OR CAST(importo_incassare AS TEXT) ILIKE %s)'
+            search_param = f'%{search}%'
+            params.extend([search_param, search_param, search_param])
+        
+        full_query = base_query + ' ORDER BY data_inserimento DESC'
+        
+        cursor.execute(full_query, params)
         scontrini_archiviati = cursor.fetchall()
         
         cursor.close()
@@ -263,7 +291,8 @@ def archivio():
                                scontrini_raggruppati=scontrini_raggruppati,
                                num_elementi=len(scontrini_archiviati),
                                totale_incassato_archivio=totale_incassato_archivio,
-                               totale_versato_archivio=totale_versato_archivio)
+                               totale_versato_archivio=totale_versato_archivio,
+                               search=search)
     except Exception as e:
         print(f"Errore nel caricamento dell'archivio: {e}")
         return f"Errore: {e}", 500
