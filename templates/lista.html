@@ -59,6 +59,19 @@
     <a href="{{ url_for('archivio') }}" class="btn btn-info">Vai all'Archivio &rarr;</a>
 </div>
 
+<!-- Barra di ricerca -->
+<div class="search-controls">
+    <form method="GET" action="{{ url_for('lista_scontrini') }}" style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
+        <input type="hidden" name="filtro" value="{{ filtro }}">
+        <input type="text" name="search" placeholder="Cerca per nome scontrino o importo..." value="{{ search or '' }}" 
+               style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <button type="submit" class="btn" style="margin: 0;">🔍 Cerca</button>
+        {% if search %}
+        <a href="{{ url_for('lista_scontrini', filtro=filtro) }}" class="btn btn-secondary" style="margin: 0;">✖ Cancella</a>
+        {% endif %}
+    </form>
+</div>
+
 <!-- Controlli per nascondere/mostrare colonne -->
 <div class="toggle-controls">
     <button type="button" class="btn-toggle" onclick="toggleVersareColumn()">
