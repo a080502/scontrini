@@ -107,6 +107,7 @@ ob_start();
             <th>Nome</th>
             <th>Data Scontrino</th>
             <th>Lordo</th>
+            <th>Da Versare</th>
             <th>Stato</th>
             <th>Data Archiviazione</th>
             <th>Azioni</th>
@@ -123,6 +124,7 @@ ob_start();
             </td>
             <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?></td>
             <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
+            <td class="euro"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
             <td>
                 <span class="badge" style="background-color: #6c757d;">Archiviato</span>
                 <?php if ($scontrino['versato']): ?>

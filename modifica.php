@@ -24,7 +24,13 @@ if ($_POST) {
     $nome = Utils::sanitizeString($_POST['nome'] ?? '');
     $data_scontrino = $_POST['data_scontrino'] ?? '';
     $lordo = Utils::safeFloat($_POST['lordo'] ?? '');
+    $da_versare = Utils::safeFloat($_POST['da_versare'] ?? '');
     $note = Utils::sanitizeString($_POST['note'] ?? '');
+    
+    // Se da_versare è vuoto o zero, usa l'importo lordo
+    if ($da_versare <= 0) {
+        $da_versare = $lordo;
+    }
     
     // Validazione
     if (empty($nome)) {
@@ -33,13 +39,17 @@ if ($_POST) {
         $error = 'La data dello scontrino è obbligatoria';
     } elseif ($lordo <= 0) {
         $error = 'L\'importo lordo deve essere maggiore di zero';
+    } elseif ($da_versare < 0) {
+        $error = 'L\'importo da versare non può essere negativo';
+    } elseif ($da_versare > $lordo) {
+        $error = 'L\'importo da versare non può essere maggiore dell\'importo lordo';
     } else {
         try {
             $db->query("
                 UPDATE scontrini 
-                SET nome = ?, data_scontrino = ?, lordo = ?, note = ?, updated_at = NOW()
+                SET nome = ?, data_scontrino = ?, lordo = ?, da_versare = ?, note = ?, updated_at = NOW()
                 WHERE id = ?
-            ", [$nome, $data_scontrino, $lordo, $note, $id]);
+            ", [$nome, $data_scontrino, $lordo, $da_versare, $note, $id]);
             
             Utils::setFlashMessage('success', 'Scontrino modificato con successo!');
             Utils::redirect('lista.php');
@@ -52,6 +62,7 @@ if ($_POST) {
     $nome = $scontrino['nome'];
     $data_scontrino = $scontrino['data_scontrino'];
     $lordo = $scontrino['lordo'];
+    $da_versare = $scontrino['da_versare'] ?? $scontrino['lordo'];
     $note = $scontrino['note'];
 }
 
@@ -104,9 +115,20 @@ ob_start();
     
     <div class="form-group">
         <label for="lordo"><i class="fas fa-euro-sign"></i> Importo Lordo *</label>
-        <input type="number" id="lordo" name="lordo" step="0.01" min="0.01" required
+        <input type="text" id="lordo" name="lordo" required
+               pattern="[0-9]+([,\\.][0-9]{1,2})?"
                value="<?php echo htmlspecialchars($lordo ?? ''); ?>"
                placeholder="0,00">
+        <small class="text-muted">Importo totale dello scontrino (es: 123,45)</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="da_versare"><i class="fas fa-hand-holding-usd"></i> Importo da Versare</label>
+        <input type="text" id="da_versare" name="da_versare"
+               pattern="[0-9]*([,\\.][0-9]{1,2})?"
+               value="<?php echo htmlspecialchars($da_versare ?? ''); ?>"
+               placeholder="0,00">
+        <small class="text-muted">Importo che deve essere versato (lascia vuoto se uguale all'importo lordo)</small>
     </div>
     
     <div class="form-group">

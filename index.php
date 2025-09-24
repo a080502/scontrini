@@ -14,7 +14,8 @@ $stats = $db->fetchOne("
         SUM(CASE WHEN archiviato = 0 THEN lordo ELSE 0 END) as totale_incassare,
         SUM(CASE WHEN incassato = 1 AND archiviato = 0 THEN lordo ELSE 0 END) as totale_incassato,
         SUM(CASE WHEN incassato = 0 AND archiviato = 0 THEN lordo ELSE 0 END) as totale_da_incassare,
-        SUM(CASE WHEN versato = 1 AND archiviato = 0 THEN lordo ELSE 0 END) as totale_versato
+        SUM(CASE WHEN versato = 1 AND archiviato = 0 THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_versato,
+        SUM(CASE WHEN versato = 0 AND incassato = 1 AND archiviato = 0 THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_da_versare
     FROM scontrini 
     WHERE archiviato = 0
 ");
@@ -24,12 +25,13 @@ $totale_incassare = $stats['totale_incassare'] ?? 0;
 $totale_incassato = $stats['totale_incassato'] ?? 0;
 $totale_da_incassare = $stats['totale_da_incassare'] ?? 0;
 $totale_versato = $stats['totale_versato'] ?? 0;
-$ancora_da_versare = $totale_incassato - $totale_versato;
+$totale_da_versare = $stats['totale_da_versare'] ?? 0;
+$ancora_da_versare = $totale_da_versare; // Usa il calcolo corretto dal database
 $cassa = $totale_incassato - $totale_versato;
 
 // Ultimi 5 scontrini inseriti
 $ultimi_scontrini = $db->fetchAll("
-    SELECT id, nome, data_scontrino, lordo, incassato, versato, archiviato
+    SELECT id, nome, data_scontrino, lordo, da_versare, incassato, versato, archiviato
     FROM scontrini 
     ORDER BY created_at DESC 
     LIMIT 5
@@ -81,6 +83,7 @@ ob_start();
                 <th>Nome</th>
                 <th>Data</th>
                 <th>Lordo</th>
+                <th>Da Versare</th>
                 <th>Stato</th>
                 <th>Azioni</th>
             </tr>
@@ -91,6 +94,7 @@ ob_start();
                 <td><?php echo htmlspecialchars($scontrino['nome']); ?></td>
                 <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?></td>
                 <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
+                <td class="euro"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
                 <td>
                     <?php if ($scontrino['archiviato']): ?>
                         <span class="badge" style="background-color: #6c757d;">Archiviato</span>

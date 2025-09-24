@@ -28,6 +28,26 @@ class Database {
         } catch (PDOException $e) {
             die("Errore connessione database: " . $e->getMessage());
         }
+        
+        // Esegui migrazioni automatiche
+        $this->runMigrations();
+    }
+    
+    private function runMigrations() {
+        try {
+            // Migrazione: Aggiungi colonna da_versare se non esiste
+            $columns = $this->query("SHOW COLUMNS FROM scontrini LIKE 'da_versare'");
+            if (empty($columns)) {
+                $this->query("
+                    ALTER TABLE scontrini 
+                    ADD COLUMN da_versare DECIMAL(10,2) DEFAULT NULL 
+                    AFTER lordo
+                ");
+            }
+        } catch (Exception $e) {
+            // Ignora errori di migrazione se la tabella non esiste ancora
+            // (es. durante il primo setup)
+        }
     }
     
     public function getConnection() {
@@ -96,16 +116,6 @@ class Database {
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 )
             ");
-            
-            // Migrazione: Aggiungi colonna da_versare se non esiste
-            $columns = $this->query("SHOW COLUMNS FROM scontrini LIKE 'da_versare'");
-            if (empty($columns)) {
-                $this->query("
-                    ALTER TABLE scontrini 
-                    ADD COLUMN da_versare DECIMAL(10,2) DEFAULT NULL 
-                    AFTER lordo
-                ");
-            }
             
             // Crea utente admin di default se non esiste
             $admin_exists = $this->fetchOne("SELECT id FROM utenti WHERE username = ?", ['admin']);
