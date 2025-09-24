@@ -3,14 +3,28 @@ require_once 'includes/bootstrap.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
+$current_user = Auth::getCurrentUser();
 
 // Filtri per archivio
 $anno = $_GET['anno'] ?? '';
 $mese = $_GET['mese'] ?? '';
 
-// Costruisci query con filtri
+// Costruisci query con filtri e permessi utente
 $where_conditions = ["archiviato = 1"];
 $params = [];
+
+// Filtri per permessi utente
+if (Auth::isAdmin()) {
+    // Admin vede tutto - nessun filtro aggiuntivo
+} elseif (Auth::isResponsabile()) {
+    // Responsabile vede solo la sua filiale
+    $where_conditions[] = "filiale_id = ?";
+    $params[] = $current_user['filiale_id'];
+} else {
+    // Utente normale vede solo i suoi scontrini
+    $where_conditions[] = "utente_id = ?";
+    $params[] = $current_user['id'];
+}
 
 if ($anno) {
     $where_conditions[] = "YEAR(data_scontrino) = ?";
@@ -42,13 +56,14 @@ $stats = $db->fetchOne("
     WHERE $where_clause
 ", $params);
 
-// Anni disponibili per filtro (solo dall'archivio)
+// Anni disponibili per filtro (solo dall'archivio e rispettando i permessi)
+$anni_where = $where_conditions; // Riusa le stesse condizioni di filtro
 $anni = $db->fetchAll("
     SELECT DISTINCT YEAR(data_scontrino) as anno 
     FROM scontrini 
-    WHERE archiviato = 1
+    WHERE " . implode(" AND ", $anni_where) . "
     ORDER BY anno DESC
-");
+", $params);
 
 $page_title = 'Archivio Scontrini - ' . SITE_NAME;
 $page_header = 'Archivio Scontrini';

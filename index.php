@@ -3,8 +3,26 @@ require_once 'includes/bootstrap.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
+$current_user = Auth::getCurrentUser();
 
-// Statistiche scontrini
+// Prepara filtri per le query basati sul ruolo dell'utente
+$where_clause = "";
+$query_params = [];
+
+if (Auth::isAdmin()) {
+    // Admin vede tutto
+    $where_clause = "";
+} elseif (Auth::isResponsabile()) {
+    // Responsabile vede solo la sua filiale
+    $where_clause = " AND filiale_id = ?";
+    $query_params[] = $current_user['filiale_id'];
+} else {
+    // Utente normale vede solo i propri scontrini
+    $where_clause = " AND utente_id = ?";
+    $query_params[] = $current_user['id'];
+}
+
+// Statistiche scontrini con filtro per ruolo
 $stats = $db->fetchOne("
     SELECT 
         COUNT(*) as num_scontrini,
@@ -17,8 +35,7 @@ $stats = $db->fetchOne("
         SUM(CASE WHEN versato = 1 AND archiviato = 0 THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_versato,
         SUM(CASE WHEN versato = 0 AND incassato = 1 AND archiviato = 0 THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_da_versare
     FROM scontrini 
-    WHERE archiviato = 0
-");
+    WHERE archiviato = 0" . $where_clause, $query_params);
 
 // Calcoli finanziari
 $totale_incassare = $stats['totale_incassare'] ?? 0;
@@ -29,13 +46,17 @@ $totale_da_versare = $stats['totale_da_versare'] ?? 0;
 $ancora_da_versare = $totale_da_versare; // Usa il calcolo corretto dal database
 $cassa = $totale_incassato - $totale_versato;
 
-// Ultimi 5 scontrini inseriti
+// Ultimi 5 scontrini inseriti con filtro per ruolo
 $ultimi_scontrini = $db->fetchAll("
-    SELECT id, nome, data_scontrino, lordo, da_versare, incassato, versato, archiviato
-    FROM scontrini 
-    ORDER BY created_at DESC 
+    SELECT s.id, s.nome, s.data_scontrino, s.lordo, s.da_versare, s.incassato, s.versato, s.archiviato,
+           u.nome as utente_nome, f.nome as filiale_nome
+    FROM scontrini s
+    LEFT JOIN utenti u ON s.utente_id = u.id
+    LEFT JOIN filiali f ON s.filiale_id = f.id
+    WHERE 1=1" . $where_clause . "
+    ORDER BY s.created_at DESC 
     LIMIT 5
-");
+", $query_params);
 
 $page_title = 'Dashboard - ' . SITE_NAME;
 $page_header = 'Dashboard - Gestione Scontrini Fiscali';
@@ -75,7 +96,15 @@ ob_start();
 </div>
 
 <div class="card">
-    <h3>Ultimi 5 Scontrini Inseriti (tutti)</h3>
+    <h3>Ultimi 5 Scontrini 
+        <?php if (Auth::isAdmin()): ?>
+            (di tutto il sistema)
+        <?php elseif (Auth::isResponsabile()): ?>
+            (della tua filiale)
+        <?php else: ?>
+            (tuoi)
+        <?php endif; ?>
+    </h3>
     <?php if ($ultimi_scontrini): ?>
     <table>
         <thead>
@@ -84,6 +113,12 @@ ob_start();
                 <th>Data</th>
                 <th>Lordo</th>
                 <th>Da Versare</th>
+                <?php if (Auth::isAdmin() || Auth::isResponsabile()): ?>
+                    <th>Utente</th>
+                    <?php if (Auth::isAdmin()): ?>
+                        <th>Filiale</th>
+                    <?php endif; ?>
+                <?php endif; ?>
                 <th>Stato</th>
                 <th>Azioni</th>
             </tr>
@@ -95,6 +130,12 @@ ob_start();
                 <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?></td>
                 <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
                 <td class="euro"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
+                <?php if (Auth::isAdmin() || Auth::isResponsabile()): ?>
+                    <td><?php echo htmlspecialchars($scontrino['utente_nome'] ?? 'N/A'); ?></td>
+                    <?php if (Auth::isAdmin()): ?>
+                        <td><?php echo htmlspecialchars($scontrino['filiale_nome'] ?? 'N/A'); ?></td>
+                    <?php endif; ?>
+                <?php endif; ?>
                 <td>
                     <?php if ($scontrino['archiviato']): ?>
                         <span class="badge" style="background-color: #6c757d;">Archiviato</span>
