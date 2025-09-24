@@ -84,6 +84,7 @@ class Database {
                     nome VARCHAR(200) NOT NULL,
                     data_scontrino DATE NOT NULL,
                     lordo DECIMAL(10,2) NOT NULL,
+                    da_versare DECIMAL(10,2) DEFAULT NULL,
                     incassato BOOLEAN DEFAULT FALSE,
                     versato BOOLEAN DEFAULT FALSE,
                     data_incasso DATETIME NULL,
@@ -95,6 +96,16 @@ class Database {
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 )
             ");
+            
+            // Migrazione: Aggiungi colonna da_versare se non esiste
+            $columns = $this->query("SHOW COLUMNS FROM scontrini LIKE 'da_versare'");
+            if (empty($columns)) {
+                $this->query("
+                    ALTER TABLE scontrini 
+                    ADD COLUMN da_versare DECIMAL(10,2) DEFAULT NULL 
+                    AFTER lordo
+                ");
+            }
             
             // Crea utente admin di default se non esiste
             $admin_exists = $this->fetchOne("SELECT id FROM utenti WHERE username = ?", ['admin']);

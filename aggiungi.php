@@ -13,6 +13,11 @@ if ($_POST) {
     $da_versare = Utils::safeFloat($_POST['da_versare'] ?? '');
     $note = Utils::sanitizeString($_POST['note'] ?? '');
     
+    // Se da_versare è vuoto o zero, usa l'importo lordo
+    if ($da_versare <= 0) {
+        $da_versare = $lordo;
+    }
+    
     // Validazione
     if (empty($nome)) {
         $error = 'Il nome dello scontrino è obbligatorio';
