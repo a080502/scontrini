@@ -27,10 +27,32 @@ Applicazione web per la gestione degli scontrini fiscali convertita da Python Fl
 2. Avvia i servizi **Apache** e **MySQL** dal pannello di controllo XAMPP
 3. Copia tutti i file di questo progetto nella cartella `htdocs/scontrini/` di XAMPP
 
-### 2. Setup Database
+### 2. Risoluzione Problemi .htaccess
 
-1. Apri il browser e vai su: `http://localhost/scontrini/setup.php`
-2. **Step 1**: Configura la connessione al database
+Se ricevi errori come `<Directory not allowed here`, segui questi passi:
+
+**Opzione A - File .htaccess Semplificato:**
+```bash
+# Rinomina il file attuale
+mv .htaccess .htaccess-backup
+# Usa la versione semplificata
+mv .htaccess-simple .htaccess
+```
+
+**Opzione B - Disabilita .htaccess temporaneamente:**
+```bash
+# Rinomina per disabilitare
+mv .htaccess .htaccess-disabled
+```
+
+**Opzione C - Configurazione Apache:**
+Nel file `httpd.conf` di XAMPP, assicurati che `AllowOverride All` sia abilitato per la directory htdocs.
+
+### 3. Setup Database
+
+1. Apri il browser e vai su: `http://localhost/scontrini/test.php` per verificare che tutto funzioni
+2. Se il test è OK, vai su: `http://localhost/scontrini/setup.php`
+3. **Step 1**: Configura la connessione al database
    - Host: `localhost`
    - Database: `scontrini_db` (verrà creato automaticamente)
    - Username: `root`

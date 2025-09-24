@@ -16,13 +16,16 @@ ServerSignature Off
     Require all denied
 </FilesMatch>
 
-# Protezione cartelle includes
-<Directory "includes/">
-    Require all denied
-</Directory>
+# Protezione cartelle includes - usando RedirectMatch invece di Directory
+RedirectMatch 403 ^/includes/.*$
+RedirectMatch 403 ^.*/includes/.*$
 
-# Rewrite per URL puliti (opzionale)
+# Rewrite per URL puliti e sicurezza
 RewriteEngine On
+
+# Protezione aggiuntiva cartelle sensibili
+RewriteRule ^includes/ - [F,L]
+RewriteRule ^api/$ - [F,L]
 
 # Redirect da setup.php dopo installazione
 RewriteCond %{REQUEST_FILENAME} setup.php
