@@ -110,6 +110,7 @@ class Database {
                     nome VARCHAR(100) NOT NULL,
                     ruolo ENUM('admin', 'responsabile', 'utente') DEFAULT 'utente',
                     filiale_id INT,
+                    attivo TINYINT(1) DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB
             ");

@@ -171,7 +171,7 @@ class Auth {
                 ORDER BY f.nome, u.nome
             ");
         } elseif (self::isResponsabile()) {
-            // Responsabile vede solo utenti della sua filiale
+            // Responsabile vede solo utenti attivi della sua filiale
             return $db->fetchAll("
                 SELECT u.id, u.username, u.nome, u.ruolo, f.nome as filiale_nome 
                 FROM utenti u 
