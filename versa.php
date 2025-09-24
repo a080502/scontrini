@@ -1,0 +1,51 @@
+<?php
+require_once 'includes/bootstrap.php';
+Auth::requireLogin();
+
+$db = Database::getInstance();
+$id = (int)($_GET['id'] ?? 0);
+
+if ($id <= 0) {
+    Utils::setFlashMessage('error', 'ID scontrino non valido');
+    Utils::redirect('lista.php');
+}
+
+// Recupera scontrino
+$scontrino = $db->fetchOne("SELECT * FROM scontrini WHERE id = ?", [$id]);
+
+if (!$scontrino) {
+    Utils::setFlashMessage('error', 'Scontrino non trovato');
+    Utils::redirect('lista.php');
+}
+
+if ($scontrino['archiviato']) {
+    Utils::setFlashMessage('error', 'Non puoi versare uno scontrino archiviato');
+    Utils::redirect('lista.php');
+}
+
+if (!$scontrino['incassato']) {
+    Utils::setFlashMessage('error', 'Devi prima incassare lo scontrino');
+    Utils::redirect('lista.php');
+}
+
+if ($scontrino['versato']) {
+    Utils::setFlashMessage('warning', 'Scontrino già versato');
+    Utils::redirect('lista.php');
+}
+
+try {
+    // Versa lo scontrino
+    $db->query("
+        UPDATE scontrini 
+        SET versato = 1, data_versamento = NOW() 
+        WHERE id = ?
+    ", [$id]);
+    
+    Utils::setFlashMessage('success', "Scontrino '{$scontrino['nome']}' versato con successo!");
+    
+} catch (Exception $e) {
+    Utils::setFlashMessage('error', 'Errore durante il versamento: ' . $e->getMessage());
+}
+
+Utils::redirect('lista.php');
+?>
