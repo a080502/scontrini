@@ -112,18 +112,21 @@ Il progetto include script di automazione per semplificare installazione, backup
 
 ```
 scripts/
-├── linux/               # Script Bash per Linux/macOS
-│   ├── install.sh       # Installazione automatica completa
-│   ├── backup.sh        # Backup automatico database
-│   ├── maintenance.sh   # Manutenzione e ottimizzazione
-│   ├── restore.sh       # Ripristino da backup
-│   └── update.sh        # Aggiornamento progetto
-└── windows/             # Script per Windows
-    ├── install.bat      # Installazione automatica completa  
-    ├── backup.bat       # Backup automatico database (Batch)
-    ├── backup.ps1       # Backup automatico database (PowerShell)
-    ├── backup_powershell.bat # Launcher per versione PowerShell
-    └── maintenance.bat  # Manutenzione e ottimizzazione
+├── linux/                      # Script Bash per Linux/macOS
+│   ├── install.sh               # Installazione automatica completa
+│   ├── backup.sh                # Backup automatico database
+│   ├── setup_automatic_backup.sh # Configura backup automatico serale
+│   ├── maintenance.sh           # Manutenzione e ottimizzazione
+│   ├── restore.sh               # Ripristino da backup
+│   └── update.sh                # Aggiornamento progetto
+└── windows/                     # Script per Windows
+    ├── install.bat              # Installazione automatica completa  
+    ├── backup.bat               # Backup automatico database (Batch)
+    ├── backup.ps1               # Backup automatico database (PowerShell)
+    ├── backup_powershell.bat    # Launcher per versione PowerShell
+    ├── setup_automatic_backup.bat # Configura backup automatico serale
+    ├── create_scheduled_backup.ps1 # Script PowerShell per task scheduler
+    └── maintenance.bat          # Manutenzione e ottimizzazione
 ```
 
 ### Utilizzo degli Script
@@ -163,6 +166,31 @@ scripts\windows\maintenance.bat
 **Raccomandazioni Windows:**
 - 🟢 **PowerShell** (`backup_powershell.bat` o `backup.ps1`): **RACCOMANDATO** - più robusto e affidabile
 - 🟡 **Batch** (`backup.bat`): Alternativa per sistemi senza PowerShell o con restrizioni
+
+### Backup Automatico Serale
+
+Per automatizzare il backup ogni sera:
+
+**Linux/macOS:**
+```bash
+# Configura backup automatico (crontab)
+./scripts/linux/setup_automatic_backup.sh
+```
+
+**Windows:**
+```cmd
+# Configura backup automatico (Task Scheduler)
+# Esegui come Amministratore:
+scripts\windows\setup_automatic_backup.bat
+```
+
+Entrambi gli script ti permetteranno di:
+- ⏰ Scegliere l'orario del backup (default: 22:00)
+- 🔄 Configurare l'esecuzione automatica giornaliera  
+- ✅ Testare immediatamente il funzionamento
+- 📋 Ottenere istruzioni per gestire i task automatici
+
+I backup automatici verranno salvati nella stessa cartella dei backup manuali.
 
 Per maggiori dettagli consulta: [scripts/README.md](scripts/README.md)
 
