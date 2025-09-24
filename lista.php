@@ -40,12 +40,22 @@ switch ($filtro) {
 
 $where_clause = implode(" AND ", $where_conditions);
 
-// Recupera scontrini
+// Recupera scontrini raggruppati per nome
 $scontrini = $db->fetchAll("
     SELECT * FROM scontrini 
     WHERE $where_clause 
-    ORDER BY data_scontrino DESC, created_at DESC
+    ORDER BY nome ASC, data_scontrino DESC, created_at DESC
 ", $params);
+
+// Raggruppa scontrini per nome
+$scontrini_raggruppati = [];
+foreach ($scontrini as $scontrino) {
+    $nome = $scontrino['nome'];
+    if (!isset($scontrini_raggruppati[$nome])) {
+        $scontrini_raggruppati[$nome] = [];
+    }
+    $scontrini_raggruppati[$nome][] = $scontrino;
+}
 
 // Statistiche per i filtri correnti
 $stats = $db->fetchOne("
@@ -130,87 +140,125 @@ ob_start();
 </div>
 <?php endif; ?>
 
-<?php if ($scontrini): ?>
-<table>
-    <thead>
-        <tr>
-            <th>Nome</th>
-            <th>Data</th>
-            <th>Lordo</th>
-            <th>Da Versare</th>
-            <th>Stato</th>
-            <th>Date Operazioni</th>
-            <th>Azioni</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php foreach ($scontrini as $scontrino): ?>
-        <tr class="<?php echo $scontrino['incassato'] ? 'incassato' : ''; ?>">
-            <td>
-                <?php echo htmlspecialchars($scontrino['nome']); ?>
-                <?php if ($scontrino['note']): ?>
-                <br><small class="text-muted"><?php echo htmlspecialchars($scontrino['note']); ?></small>
-                <?php endif; ?>
-            </td>
-            <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?></td>
-            <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
-            <td class="euro"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
-            <td>
-                <?php if ($scontrino['versato']): ?>
-                    <span class="badge badge-success">Versato</span>
-                <?php elseif ($scontrino['incassato']): ?>
-                    <span class="badge badge-success">Incassato</span>
-                <?php else: ?>
-                    <span class="badge badge-warning">Da Incassare</span>
-                <?php endif; ?>
-            </td>
-            <td>
-                <?php if ($scontrino['data_incasso']): ?>
-                <small>Incassato: <?php echo Utils::formatDateTime($scontrino['data_incasso']); ?></small><br>
-                <?php endif; ?>
-                <?php if ($scontrino['data_versamento']): ?>
-                <small>Versato: <?php echo Utils::formatDateTime($scontrino['data_versamento']); ?></small>
-                <?php endif; ?>
-            </td>
-            <td>
-                <a href="modifica.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Modifica">
-                    <i class="fas fa-edit"></i>
-                </a>
-                
-                <?php if (!$scontrino['incassato']): ?>
-                <a href="incassa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Incassa">
-                    <i class="fas fa-money-bill"></i>
-                </a>
-                <?php endif; ?>
-                
-                <?php if ($scontrino['incassato'] && !$scontrino['versato']): ?>
-                <a href="versa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Versa">
-                    <i class="fas fa-university"></i>
-                </a>
-                <a href="annulla_incasso.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Annulla Incasso">
-                    <i class="fas fa-undo"></i>
-                </a>
-                <?php endif; ?>
-                
-                <?php if ($scontrino['versato']): ?>
-                <a href="annulla_versamento.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Annulla Versamento">
-                    <i class="fas fa-undo"></i>
-                </a>
-                <?php endif; ?>
-                
-                <a href="archivia.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-secondary" title="Archivia">
-                    <i class="fas fa-archive"></i>
-                </a>
-                
-                <a href="elimina.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-danger" 
-                   onclick="return confermaEliminazione('Sei sicuro di voler eliminare questo scontrino?')" title="Elimina">
-                    <i class="fas fa-trash"></i>
-                </a>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-    </tbody>
-</table>
+<?php if ($scontrini_raggruppati): ?>
+<div class="scontrini-raggruppati">
+    <?php foreach ($scontrini_raggruppati as $nome => $scontrini_gruppo): ?>
+        <?php 
+        // Calcola totali per il gruppo
+        $totale_gruppo_lordo = 0;
+        $totale_gruppo_da_versare = 0;
+        $count_incassati = 0;
+        $count_versati = 0;
+        
+        foreach ($scontrini_gruppo as $scontrino) {
+            $totale_gruppo_lordo += $scontrino['lordo'];
+            $totale_gruppo_da_versare += $scontrino['da_versare'] ?? $scontrino['lordo'];
+            if ($scontrino['incassato']) $count_incassati++;
+            if ($scontrino['versato']) $count_versati++;
+        }
+        ?>
+        
+        <div class="gruppo-nome">
+            <h3 class="nome-gruppo">
+                <?php echo htmlspecialchars($nome); ?>
+                <small>(<?php echo count($scontrini_gruppo); ?> scontrini)</small>
+            </h3>
+            
+            <table class="tabella-gruppo">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Lordo</th>
+                        <th>Da Versare</th>
+                        <th>Stato</th>
+                        <th>Date Operazioni</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($scontrini_gruppo as $scontrino): ?>
+                    <tr class="<?php echo $scontrino['incassato'] ? 'incassato' : ''; ?>">
+                        <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?>
+                            <?php if ($scontrino['note']): ?>
+                            <br><small class="text-muted"><?php echo htmlspecialchars($scontrino['note']); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
+                        <td class="euro"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
+                        <td>
+                            <?php if ($scontrino['versato']): ?>
+                                <span class="badge badge-success">Versato</span>
+                            <?php elseif ($scontrino['incassato']): ?>
+                                <span class="badge badge-success">Incassato</span>
+                            <?php else: ?>
+                                <span class="badge badge-warning">Da Incassare</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($scontrino['data_incasso']): ?>
+                            <small>Incassato: <?php echo Utils::formatDateTime($scontrino['data_incasso']); ?></small><br>
+                            <?php endif; ?>
+                            <?php if ($scontrino['data_versamento']): ?>
+                            <small>Versato: <?php echo Utils::formatDateTime($scontrino['data_versamento']); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <a href="modifica.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Modifica">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            
+                            <?php if (!$scontrino['incassato']): ?>
+                            <a href="incassa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Incassa">
+                                <i class="fas fa-money-bill"></i>
+                            </a>
+                            <?php endif; ?>
+                            
+                            <?php if ($scontrino['incassato'] && !$scontrino['versato']): ?>
+                            <a href="versa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Versa">
+                                <i class="fas fa-university"></i>
+                            </a>
+                            <a href="annulla_incasso.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Annulla Incasso">
+                                <i class="fas fa-undo"></i>
+                            </a>
+                            <?php endif; ?>
+                            
+                            <?php if ($scontrino['versato']): ?>
+                            <a href="annulla_versamento.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Annulla Versamento">
+                                <i class="fas fa-undo"></i>
+                            </a>
+                            <?php endif; ?>
+                            
+                            <a href="archivia.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-secondary" title="Archivia">
+                                <i class="fas fa-archive"></i>
+                            </a>
+                            
+                            <a href="elimina.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-danger" 
+                               onclick="return confermaEliminazione('Sei sicuro di voler eliminare questo scontrino?')" title="Elimina">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            
+            <!-- Totali del gruppo -->
+            <div class="totali-gruppo">
+                <div class="totali-riga">
+                    <strong>Totali per <?php echo htmlspecialchars($nome); ?>:</strong>
+                    <span class="totale-importo">Lordo: <span class="euro"><?php echo Utils::formatCurrency($totale_gruppo_lordo); ?></span></span>
+                    <span class="totale-da-versare">Da Versare: <span class="euro"><?php echo Utils::formatCurrency($totale_gruppo_da_versare); ?></span></span>
+                    <span class="stato-gruppo">
+                        <?php echo $count_incassati; ?>/<?php echo count($scontrini_gruppo); ?> incassati - 
+                        <?php echo $count_versati; ?>/<?php echo count($scontrini_gruppo); ?> versati
+                    </span>
+                </div>
+            </div>
+        </div>
+        <hr class="gruppo-separator">
+    <?php endforeach; ?>
+</div>
+<?php elseif ($scontrini): ?>
 <?php else: ?>
 <div class="alert alert-info">
     <i class="fas fa-info-circle"></i> Nessuno scontrino trovato con i filtri selezionati.

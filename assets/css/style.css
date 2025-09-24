@@ -316,3 +316,128 @@ input[type="text"], input[type="date"], input[type="number"], input[type="passwo
     background-color: #007bff !important;
     color: #ffffff;
 }
+
+/* Stili per scontrini raggruppati */
+.scontrini-raggruppati {
+    margin-top: 20px;
+}
+
+.gruppo-nome {
+    margin-bottom: 30px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.nome-gruppo {
+    margin: 0 0 15px 0;
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 5px;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.nome-gruppo small {
+    font-weight: normal;
+    opacity: 0.8;
+    font-size: 0.8em;
+}
+
+.tabella-gruppo {
+    width: 100%;
+    margin-bottom: 15px;
+    background: white;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tabella-gruppo thead th {
+    background: #343a40;
+    color: white;
+    font-weight: bold;
+    text-align: left;
+}
+
+.tabella-gruppo tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.tabella-gruppo tbody tr:hover {
+    background-color: #e8f4f8;
+}
+
+.totali-gruppo {
+    background: #e9ecef;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 10px;
+    border-left: 4px solid #007bff;
+}
+
+.totali-riga {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+}
+
+.totali-riga strong {
+    color: #495057;
+    font-size: 1.1em;
+}
+
+.totale-importo,
+.totale-da-versare {
+    background: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    font-weight: 500;
+}
+
+.totale-importo .euro,
+.totale-da-versare .euro {
+    font-weight: bold;
+    color: #28a745;
+}
+
+.stato-gruppo {
+    font-size: 0.9em;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.gruppo-separator {
+    border: none;
+    height: 2px;
+    background: linear-gradient(to right, transparent, #007bff, transparent);
+    margin: 40px 0;
+}
+
+/* Responsive per raggruppamenti */
+@media (max-width: 768px) {
+    .gruppo-nome {
+        padding: 15px;
+    }
+    
+    .nome-gruppo {
+        font-size: 1em;
+        padding: 8px 12px;
+    }
+    
+    .totali-riga {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .totale-importo,
+    .totale-da-versare {
+        width: 100%;
+        text-align: center;
+    }
+}
