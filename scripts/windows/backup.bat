@@ -77,40 +77,42 @@ if not defined MYSQLDUMP_PATH (
     goto :skip_database
 )
 
-REM Backup completo database (versione alternativa con file SQL)
+REM Backup database - Metodo con script VBS per evitare problemi batch
 echo %BLUE%[INFO]%NC% Creazione backup database...
 
-REM Crea file SQL temporaneo per evitare problemi con nome database
-echo SHOW DATABASES; > "%BACKUP_DIR%\%BACKUP_NAME%\temp_dump.sql"
-
-REM Prova approccio 1: Variabile separata
-set "TARGET_DB=scontrini_db"
+REM Crea script VBScript temporaneo per eseguire mysqldump
+echo Set WshShell = CreateObject("WScript.Shell") > "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
+echo Dim cmd >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
 if "%DB_PASS%"=="" (
-    "%MYSQLDUMP_PATH%" -hlocalhost -uroot %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
+    echo cmd = """%MYSQLDUMP_PATH%"" -hlocalhost -uroot scontrini_db" >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
 ) else (
-    "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
+    echo cmd = """%MYSQLDUMP_PATH%"" -hlocalhost -uroot -p%DB_PASS% scontrini_db" >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
 )
+echo Set exec = WshShell.Exec(cmd) >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
+echo Set fso = CreateObject("Scripting.FileSystemObject") >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
+echo Set outFile = fso.CreateTextFile("%BACKUP_DIR%\%BACKUP_NAME%\database.sql", True) >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
+echo Do While Not exec.StdOut.AtEndOfStream >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
+echo     outFile.WriteLine exec.StdOut.ReadLine >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
+echo Loop >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
+echo outFile.Close >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
+echo WScript.Echo "ExitCode:" ^& exec.ExitCode >> "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs"
 
-REM Se fallisce, prova approccio 2: File batch separato
-if %ERRORLEVEL% NEQ 0 (
-    echo %YELLOW%[WARNING]%NC% Primo tentativo fallito, provo metodo alternativo...
-    
-    REM Crea mini script per mysqldump
-    echo @echo off > "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat"
-    if "%DB_PASS%"=="" (
-        echo "%MYSQLDUMP_PATH%" -hlocalhost -uroot scontrini_db >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat"
-    ) else (
-        echo "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% scontrini_db >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat"
-    )
-    
-    REM Esegui script separato
-    call "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat" > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
-    
-    REM Pulizia file temporaneo
-    del "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat" 2>nul
-)
+REM Esegui script VBS
+cscript //NoLogo "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs" > "%BACKUP_DIR%\%BACKUP_NAME%\vbs_output.txt"
 
+REM Verifica risultato
+findstr "ExitCode:0" "%BACKUP_DIR%\%BACKUP_NAME%\vbs_output.txt" >nul
 if %ERRORLEVEL% EQU 0 (
+    set "DUMP_SUCCESS=1"
+) else (
+    set "DUMP_SUCCESS=0"
+)
+
+REM Pulizia file temporanei
+del "%BACKUP_DIR%\%BACKUP_NAME%\dump.vbs" 2>nul
+del "%BACKUP_DIR%\%BACKUP_NAME%\vbs_output.txt" 2>nul
+
+if "%DUMP_SUCCESS%"=="1" (
     echo %GREEN%[OK]%NC% Database salvato
     
     REM Verifica se il file è stato creato e ha contenuto
@@ -124,28 +126,46 @@ if %ERRORLEVEL% EQU 0 (
         )
     )
     
-    REM Backup struttura database (solo tabelle)
+    REM Backup struttura database usando VBS (solo tabelle)
+    echo Set WshShell = CreateObject("WScript.Shell") > "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
     if "%DB_PASS%"=="" (
-        "%MYSQLDUMP_PATH%" -hlocalhost -uroot --no-data %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
+        echo cmd = """%MYSQLDUMP_PATH%"" -hlocalhost -uroot --no-data scontrini_db" >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
     ) else (
-        "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% --no-data %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
+        echo cmd = """%MYSQLDUMP_PATH%"" -hlocalhost -uroot -p%DB_PASS% --no-data scontrini_db" >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
     )
+    echo Set exec = WshShell.Exec(cmd) >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
+    echo Set fso = CreateObject("Scripting.FileSystemObject") >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
+    echo Set outFile = fso.CreateTextFile("%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql", True) >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
+    echo Do While Not exec.StdOut.AtEndOfStream >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
+    echo     outFile.WriteLine exec.StdOut.ReadLine >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
+    echo Loop >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
+    echo outFile.Close >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
     
-    REM Backup dati database (solo dati)
+    cscript //NoLogo "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs"
+    del "%BACKUP_DIR%\%BACKUP_NAME%\dump_struct.vbs" 2>nul
+    
+    REM Backup dati database usando VBS (solo dati)
+    echo Set WshShell = CreateObject("WScript.Shell") > "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
     if "%DB_PASS%"=="" (
-        "%MYSQLDUMP_PATH%" -hlocalhost -uroot --no-create-info %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
+        echo cmd = """%MYSQLDUMP_PATH%"" -hlocalhost -uroot --no-create-info scontrini_db" >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
     ) else (
-        "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% --no-create-info %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
+        echo cmd = """%MYSQLDUMP_PATH%"" -hlocalhost -uroot -p%DB_PASS% --no-create-info scontrini_db" >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
     )
+    echo Set exec = WshShell.Exec(cmd) >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
+    echo Set fso = CreateObject("Scripting.FileSystemObject") >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
+    echo Set outFile = fso.CreateTextFile("%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql", True) >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
+    echo Do While Not exec.StdOut.AtEndOfStream >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
+    echo     outFile.WriteLine exec.StdOut.ReadLine >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
+    echo Loop >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
+    echo outFile.Close >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
+    
+    cscript //NoLogo "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs"
+    del "%BACKUP_DIR%\%BACKUP_NAME%\dump_data.vbs" 2>nul
     
     echo %GREEN%[OK]%NC% Backup database completo
 ) else (
     echo %YELLOW%[WARNING]%NC% Problemi backup database
-    REM Mostra errori se esistono
-    if exist "%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log" (
-        echo %RED%[ERROR]%NC% Dettagli errore:
-        type "%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
-    )
+    echo %YELLOW%[INFO]%NC% Prova ad usare backup_powershell.bat come alternativa
 )
 
 :skip_database

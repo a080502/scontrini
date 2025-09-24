@@ -112,16 +112,18 @@ Il progetto include script di automazione per semplificare installazione, backup
 
 ```
 scripts/
-├── linux/          # Script Bash per Linux/macOS
-│   ├── install.sh   # Installazione automatica completa
-│   ├── backup.sh    # Backup automatico database
-│   ├── maintenance.sh # Manutenzione e ottimizzazione
-│   ├── restore.sh   # Ripristino da backup
-│   └── update.sh    # Aggiornamento progetto
-└── windows/         # Script Batch per Windows
-    ├── install.bat   # Installazione automatica completa
-    ├── backup.bat    # Backup automatico database
-    └── maintenance.bat # Manutenzione e ottimizzazione
+├── linux/               # Script Bash per Linux/macOS
+│   ├── install.sh       # Installazione automatica completa
+│   ├── backup.sh        # Backup automatico database
+│   ├── maintenance.sh   # Manutenzione e ottimizzazione
+│   ├── restore.sh       # Ripristino da backup
+│   └── update.sh        # Aggiornamento progetto
+└── windows/             # Script per Windows
+    ├── install.bat      # Installazione automatica completa  
+    ├── backup.bat       # Backup automatico database (Batch)
+    ├── backup.ps1       # Backup automatico database (PowerShell)
+    ├── backup_powershell.bat # Launcher per versione PowerShell
+    └── maintenance.bat  # Manutenzione e ottimizzazione
 ```
 
 ### Utilizzo degli Script
@@ -146,12 +148,19 @@ chmod +x scripts/linux/*.sh
 # Installazione automatica
 scripts\windows\install.bat
 
-# Backup database
+# Backup database (versione Batch tradizionale)
 scripts\windows\backup.bat
+
+# Backup database (versione PowerShell - più robusta)
+scripts\windows\backup_powershell.bat
+# oppure direttamente:
+powershell -ExecutionPolicy Bypass -File scripts\windows\backup.ps1
 
 # Manutenzione
 scripts\windows\maintenance.bat
 ```
+
+**Nota per Windows:** Se riscontri problemi con `backup.bat`, usa la versione PowerShell che è più robusta e gestisce meglio i nomi di database con caratteri speciali.
 
 Per maggiori dettagli consulta: [scripts/README.md](scripts/README.md)
 
