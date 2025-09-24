@@ -71,19 +71,31 @@ if not defined MYSQLDUMP_PATH (
 )
 
 REM Backup completo database
-"%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% --routines --triggers --single-transaction %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql"
+if "%DB_PASS%"=="" (
+    "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% --routines --triggers --single-transaction %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql"
+) else (
+    "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% --routines --triggers --single-transaction %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql"
+)
 
 if %ERRORLEVEL% EQU 0 (
     echo %GREEN%[OK]%NC% Database salvato
+    
+    REM Backup struttura database
+    if "%DB_PASS%"=="" (
+        "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% --no-data --routines --triggers %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
+    ) else (
+        "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% --no-data --routines --triggers %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
+    )
+    
+    REM Backup dati database
+    if "%DB_PASS%"=="" (
+        "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% --no-create-info --skip-triggers %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
+    ) else (
+        "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% --no-create-info --skip-triggers %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
+    )
 ) else (
     echo %YELLOW%[WARNING]%NC% Problemi backup database
 )
-
-REM Backup struttura database
-"%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% --no-data --routines --triggers %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
-
-REM Backup dati database
-"%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% --no-create-info --skip-triggers %DB_NAME% > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
 
 :skip_database
 

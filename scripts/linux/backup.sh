@@ -28,10 +28,15 @@ BACKUP_NAME="scontrini_backup_$DATE"
 
 # Carica configurazione se esiste
 if [ -f "$SCRIPT_DIR/../../config.php" ]; then
-    DB_HOST=$(grep "define('DB_HOST'" "$SCRIPT_DIR/../../config.php" | sed "s/.*'\(.*\)'.*/\1/")
-    DB_NAME=$(grep "define('DB_NAME'" "$SCRIPT_DIR/../../config.php" | sed "s/.*'\(.*\)'.*/\1/")
-    DB_USER=$(grep "define('DB_USER'" "$SCRIPT_DIR/../../config.php" | sed "s/.*'\(.*\)'.*/\1/")
-    DB_PASS=$(grep "define('DB_PASS'" "$SCRIPT_DIR/../../config.php" | sed "s/.*'\(.*\)'.*/\1/")
+    DB_HOST=$(grep "define('DB_HOST'" "$SCRIPT_DIR/../../config.php" | cut -d"'" -f4)
+    DB_NAME=$(grep "define('DB_NAME'" "$SCRIPT_DIR/../../config.php" | cut -d"'" -f4)
+    DB_USER=$(grep "define('DB_USER'" "$SCRIPT_DIR/../../config.php" | cut -d"'" -f4)
+    DB_PASS=$(grep "define('DB_PASS'" "$SCRIPT_DIR/../../config.php" | cut -d"'" -f4)
+    
+    # Verifica che i valori siano stati letti
+    if [ -z "$DB_HOST" ] || [ -z "$DB_NAME" ] || [ -z "$DB_USER" ]; then
+        print_error "Errore lettura config.php - valori database mancanti"
+    fi
     
     print_info "Configurazione database caricata da config.php"
 else
@@ -63,26 +68,37 @@ print_success "File applicazione salvati in files.tar.gz"
 print_info "Backup database..."
 
 if command -v mysqldump >/dev/null 2>&1; then
+    # Costruisci comando mysqldump con password opzionale
+    if [ -n "$DB_PASS" ]; then
+        MYSQL_PASS_ARG="-p$DB_PASS"
+    else
+        MYSQL_PASS_ARG=""
+    fi
+    
     # Backup con structure e data
-    mysqldump -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" \
+    mysqldump -h"$DB_HOST" -u"$DB_USER" $MYSQL_PASS_ARG \
         --routines --triggers --single-transaction \
         "$DB_NAME" > "$BACKUP_DIR/$BACKUP_NAME/database.sql"
     
-    print_success "Database salvato in database.sql"
-    
-    # Backup solo structure (per ripristini puliti)
-    mysqldump -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" \
-        --no-data --routines --triggers \
-        "$DB_NAME" > "$BACKUP_DIR/$BACKUP_NAME/database_structure.sql"
-    
-    print_success "Struttura database salvata in database_structure.sql"
-    
-    # Backup solo dati
-    mysqldump -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASS" \
-        --no-create-info --skip-triggers \
-        "$DB_NAME" > "$BACKUP_DIR/$BACKUP_NAME/database_data.sql"
-    
-    print_success "Dati database salvati in database_data.sql"
+    if [ $? -eq 0 ]; then
+        print_success "Database salvato in database.sql"
+        
+        # Backup solo structure (per ripristini puliti)
+        mysqldump -h"$DB_HOST" -u"$DB_USER" $MYSQL_PASS_ARG \
+            --no-data --routines --triggers \
+            "$DB_NAME" > "$BACKUP_DIR/$BACKUP_NAME/database_structure.sql"
+        
+        print_success "Struttura database salvata in database_structure.sql"
+        
+        # Backup solo dati
+        mysqldump -h"$DB_HOST" -u"$DB_USER" $MYSQL_PASS_ARG \
+            --no-create-info --skip-triggers \
+            "$DB_NAME" > "$BACKUP_DIR/$BACKUP_NAME/database_data.sql"
+        
+        print_success "Dati database salvati in database_data.sql"
+    else
+        print_warning "Errore backup database - verifica connessione MySQL"
+    fi
     
 else
     print_warning "mysqldump non disponibile, backup database saltato"
