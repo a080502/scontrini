@@ -7,16 +7,48 @@ $current_user = Auth::getCurrentUser();
 $error = '';
 $success = '';
 
+// Per responsabili e admin, recupera la lista utenti disponibili
+$available_users = Auth::getAvailableUsersForReceipts();
+
 if ($_POST) {
     $nome = Utils::sanitizeString($_POST['nome'] ?? '');
     $data_scontrino = $_POST['data_scontrino'] ?? '';
     $lordo = Utils::safeFloat($_POST['lordo'] ?? '');
     $da_versare = Utils::safeFloat($_POST['da_versare'] ?? '');
     $note = Utils::sanitizeString($_POST['note'] ?? '');
+    $selected_user_id = isset($_POST['utente_id']) ? (int)$_POST['utente_id'] : null;
     
     // Se da_versare è vuoto o zero, usa l'importo lordo
     if ($da_versare <= 0) {
         $da_versare = $lordo;
+    }
+    
+    // Determina l'utente e la filiale per lo scontrino
+    $target_user_id = $current_user['id'];
+    $target_filiale_id = $current_user['filiale_id'];
+    
+    // Se è responsabile o admin e ha selezionato un utente specifico
+    if ((Auth::isResponsabile() || Auth::isAdmin()) && $selected_user_id) {
+        // Verifica che l'utente selezionato sia autorizzato
+        $selected_user = null;
+        foreach ($available_users as $user) {
+            if ($user['id'] == $selected_user_id) {
+                $selected_user = $user;
+                break;
+            }
+        }
+        
+        if ($selected_user) {
+            // Ottieni i dettagli completi dell'utente selezionato
+            $user_details = $db->fetchOne("
+                SELECT id, filiale_id FROM utenti WHERE id = ? AND attivo = 1
+            ", [$selected_user_id]);
+            
+            if ($user_details) {
+                $target_user_id = $user_details['id'];
+                $target_filiale_id = $user_details['filiale_id'];
+            }
+        }
     }
     
     // Validazione
@@ -32,13 +64,26 @@ if ($_POST) {
         $error = 'L\'importo da versare non può essere maggiore dell\'importo lordo';
     } else {
         try {
-            // Associa automaticamente lo scontrino all'utente e alla filiale corrente
+            // Inserisci lo scontrino associandolo all'utente e filiale determinati
             $db->query("
                 INSERT INTO scontrini (nome, data_scontrino, lordo, da_versare, note, utente_id, filiale_id) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            ", [$nome, $data_scontrino, $lordo, $da_versare, $note, $current_user['id'], $current_user['filiale_id']]);
+            ", [$nome, $data_scontrino, $lordo, $da_versare, $note, $target_user_id, $target_filiale_id]);
             
-            Utils::setFlashMessage('success', 'Scontrino aggiunto con successo!');
+            $success_message = 'Scontrino aggiunto con successo!';
+            if ($target_user_id !== $current_user['id']) {
+                // Trova il nome dell'utente per il messaggio
+                $target_user_name = '';
+                foreach ($available_users as $user) {
+                    if ($user['id'] == $target_user_id) {
+                        $target_user_name = $user['nome'];
+                        break;
+                    }
+                }
+                $success_message = "Scontrino aggiunto con successo per l'utente: " . $target_user_name;
+            }
+            
+            Utils::setFlashMessage('success', $success_message);
             Utils::redirect('index.php');
         } catch (Exception $e) {
             $error = 'Errore durante il salvataggio: ' . $e->getMessage();
@@ -46,7 +91,7 @@ if ($_POST) {
     }
 }
 
-$page_title = 'Aggiungi Scontrino - ' . SITE_NAME;
+$page_title = 'Aggiungi Scontrino - ' . APP_NAME;
 $page_header = 'Aggiungi Nuovo Scontrino';
 
 ob_start();
@@ -56,6 +101,31 @@ ob_start();
     <?php if ($error): ?>
     <div class="alert alert-danger">
         <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
+    </div>
+    <?php endif; ?>
+    
+    <?php if ((Auth::isResponsabile() || Auth::isAdmin()) && !empty($available_users)): ?>
+    <div class="form-group user-selection-field">
+        <label for="utente_id"><i class="fas fa-user"></i> Associa Scontrino a Utente</label>
+        <select id="utente_id" name="utente_id" class="form-control">
+            <option value="">-- Seleziona utente (o lascia vuoto per te stesso) --</option>
+            <?php foreach ($available_users as $user): ?>
+                <option value="<?php echo $user['id']; ?>" 
+                        <?php echo (isset($selected_user_id) && $selected_user_id == $user['id']) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($user['nome'] . ' (' . $user['username'] . ')'); ?>
+                    <?php if (Auth::isAdmin()): ?>
+                        - <?php echo htmlspecialchars($user['filiale_nome']); ?>
+                    <?php endif; ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <small class="text-muted">
+            <?php if (Auth::isAdmin()): ?>
+                Come admin, puoi associare lo scontrino a qualsiasi utente di qualsiasi filiale
+            <?php else: ?>
+                Come responsabile, puoi associare lo scontrino agli utenti della tua filiale
+            <?php endif; ?>
+        </small>
     </div>
     <?php endif; ?>
     
@@ -108,6 +178,28 @@ ob_start();
         </a>
     </div>
 </form>
+
+<?php if ((Auth::isResponsabile() || Auth::isAdmin()) && !empty($available_users)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectUtente = document.getElementById('utente_id');
+    const pageHeader = document.querySelector('h1');
+    const originalHeader = pageHeader.textContent;
+    
+    selectUtente.addEventListener('change', function() {
+        if (this.value) {
+            const selectedOption = this.options[this.selectedIndex];
+            const userName = selectedOption.textContent.split(' (')[0];
+            pageHeader.textContent = 'Aggiungi Scontrino per: ' + userName;
+            pageHeader.className = 'text-primary';
+        } else {
+            pageHeader.textContent = originalHeader;
+            pageHeader.className = '';
+        }
+    });
+});
+</script>
+<?php endif; ?>
 
 <?php
 $content = ob_get_clean();

@@ -126,5 +126,63 @@ class Auth {
         }
         return null;
     }
+    
+    public static function canManageUser($target_user_id) {
+        if (!self::isLoggedIn()) {
+            return false;
+        }
+        
+        $current_user = self::getCurrentUser();
+        
+        // Admin può gestire tutti
+        if (self::isAdmin()) {
+            return true;
+        }
+        
+        // Responsabile può gestire utenti della sua filiale
+        if (self::isResponsabile()) {
+            $db = Database::getInstance();
+            $target_user = $db->fetchOne("
+                SELECT filiale_id FROM utenti WHERE id = ? AND attivo = 1
+            ", [$target_user_id]);
+            
+            return $target_user && $target_user['filiale_id'] == $current_user['filiale_id'];
+        }
+        
+        // Utente normale può gestire solo se stesso
+        return $target_user_id == $current_user['id'];
+    }
+    
+    public static function getAvailableUsersForReceipts() {
+        if (!self::isLoggedIn()) {
+            return [];
+        }
+        
+        $db = Database::getInstance();
+        $current_user = self::getCurrentUser();
+        
+        if (self::isAdmin()) {
+            // Admin vede tutti gli utenti attivi
+            return $db->fetchAll("
+                SELECT u.id, u.username, u.nome, u.ruolo, f.nome as filiale_nome 
+                FROM utenti u 
+                JOIN filiali f ON u.filiale_id = f.id 
+                WHERE u.attivo = 1 
+                ORDER BY f.nome, u.nome
+            ");
+        } elseif (self::isResponsabile()) {
+            // Responsabile vede solo utenti della sua filiale
+            return $db->fetchAll("
+                SELECT u.id, u.username, u.nome, u.ruolo, f.nome as filiale_nome 
+                FROM utenti u 
+                JOIN filiali f ON u.filiale_id = f.id 
+                WHERE u.filiale_id = ? AND u.attivo = 1 
+                ORDER BY u.nome
+            ", [$current_user['filiale_id']]);
+        }
+        
+        // Utente normale non può selezionare altri utenti
+        return [];
+    }
 }
 ?>
