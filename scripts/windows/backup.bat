@@ -36,11 +36,18 @@ if not exist "%SCRIPT_DIR%..\..\config.php" (
     exit /b 1
 )
 
-REM Estrai parametri database (metodo semplificato per Windows)
-for /f "tokens=2 delims='" %%a in ('findstr "DB_HOST" "%SCRIPT_DIR%..\..\config.php"') do set "DB_HOST=%%a"
-for /f "tokens=2 delims='" %%a in ('findstr "DB_NAME" "%SCRIPT_DIR%..\..\config.php"') do set "DB_NAME=%%a"
-for /f "tokens=2 delims='" %%a in ('findstr "DB_USER" "%SCRIPT_DIR%..\..\config.php"') do set "DB_USER=%%a"
-for /f "tokens=2 delims='" %%a in ('findstr "DB_PASS" "%SCRIPT_DIR%..\..\config.php"') do set "DB_PASS=%%a"
+REM Estrai parametri database (metodo migliorato per Windows)
+for /f "tokens=4 delims='" %%a in ('findstr "DB_HOST" "%SCRIPT_DIR%..\..\config.php"') do set "DB_HOST=%%a"
+for /f "tokens=4 delims='" %%a in ('findstr "DB_NAME" "%SCRIPT_DIR%..\..\config.php"') do set "DB_NAME=%%a"
+for /f "tokens=4 delims='" %%a in ('findstr "DB_USER" "%SCRIPT_DIR%..\..\config.php"') do set "DB_USER=%%a"
+for /f "tokens=4 delims='" %%a in ('findstr "DB_PASS" "%SCRIPT_DIR%..\..\config.php"') do set "DB_PASS=%%a"
+
+REM Verifica che i valori siano stati letti
+if not defined DB_HOST (
+    echo %RED%[ERROR]%NC% Impossibile leggere DB_HOST da config.php
+    pause
+    exit /b 1
+)
 
 echo %GREEN%[OK]%NC% Configurazione database caricata
 

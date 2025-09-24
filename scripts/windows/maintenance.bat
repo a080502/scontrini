@@ -92,10 +92,10 @@ if exist "%SCRIPT_DIR%..\..\config.php" (
     echo %BLUE%[INFO]%NC% Test connessione database...
     
     REM Estrai parametri database
-    for /f "tokens=2 delims='" %%a in ('findstr "DB_HOST" "%SCRIPT_DIR%..\..\config.php"') do set "DB_HOST=%%a"
-    for /f "tokens=2 delims='" %%a in ('findstr "DB_NAME" "%SCRIPT_DIR%..\..\config.php"') do set "DB_NAME=%%a"
-    for /f "tokens=2 delims='" %%a in ('findstr "DB_USER" "%SCRIPT_DIR%..\..\config.php"') do set "DB_USER=%%a"
-    for /f "tokens=2 delims='" %%a in ('findstr "DB_PASS" "%SCRIPT_DIR%..\..\config.php"') do set "DB_PASS=%%a"
+    for /f "tokens=4 delims='" %%a in ('findstr "DB_HOST" "%SCRIPT_DIR%..\..\config.php"') do set "DB_HOST=%%a"
+    for /f "tokens=4 delims='" %%a in ('findstr "DB_NAME" "%SCRIPT_DIR%..\..\config.php"') do set "DB_NAME=%%a"
+    for /f "tokens=4 delims='" %%a in ('findstr "DB_USER" "%SCRIPT_DIR%..\..\config.php"') do set "DB_USER=%%a"
+    for /f "tokens=4 delims='" %%a in ('findstr "DB_PASS" "%SCRIPT_DIR%..\..\config.php"') do set "DB_PASS=%%a"
     
     REM Cerca mysql client
     set "MYSQL_PATH="
