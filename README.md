@@ -106,6 +106,55 @@ Nel file `httpd.conf` di XAMPP, assicurati che `AllowOverride All` sia abilitato
 └── logout.php                 # Logout utente
 ```
 
+## Script di Automazione
+
+Il progetto include script di automazione per semplificare installazione, backup e manutenzione:
+
+```
+scripts/
+├── linux/          # Script Bash per Linux/macOS
+│   ├── install.sh   # Installazione automatica completa
+│   ├── backup.sh    # Backup automatico database
+│   ├── maintenance.sh # Manutenzione e ottimizzazione
+│   ├── restore.sh   # Ripristino da backup
+│   └── update.sh    # Aggiornamento progetto
+└── windows/         # Script Batch per Windows
+    ├── install.bat   # Installazione automatica completa
+    ├── backup.bat    # Backup automatico database
+    └── maintenance.bat # Manutenzione e ottimizzazione
+```
+
+### Utilizzo degli Script
+
+**Linux/macOS:**
+```bash
+# Rendere eseguibili (solo la prima volta)
+chmod +x scripts/linux/*.sh
+
+# Installazione automatica
+./scripts/linux/install.sh
+
+# Backup database
+./scripts/linux/backup.sh
+
+# Manutenzione
+./scripts/linux/maintenance.sh
+```
+
+**Windows:**
+```cmd
+# Installazione automatica
+scripts\windows\install.bat
+
+# Backup database
+scripts\windows\backup.bat
+
+# Manutenzione
+scripts\windows\maintenance.bat
+```
+
+Per maggiori dettagli consulta: [scripts/README.md](scripts/README.md)
+
 ## Conversione da Flask
 
 Questa versione PHP mantiene:

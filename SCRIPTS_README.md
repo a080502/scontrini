@@ -1,18 +1,58 @@
-# Script Bash - Gestione Scontrini PHP
+# Script di Automazione - Gestione Scontrini PHP
 
-Questa cartella contiene script bash per automatizzare l'installazione, manutenzione e gestione del sistema.
+Gli script di automazione sono ora organizzati in cartelle separate per piattaforma nella directory `scripts/`.
 
-## 📁 Script Disponibili
+## 📁 Struttura Script
 
-### 🚀 `install.sh`
-**Installazione automatica del sistema**
-
-```bash
-bash install.sh
+```
+scripts/
+├── linux/          # Script Bash per Linux/macOS  
+│   ├── install.sh   # Installazione automatica del sistema
+│   ├── backup.sh    # Backup completo di file e database
+│   ├── maintenance.sh # Manutenzione e ottimizzazione
+│   └── update.sh    # Aggiornamento del sistema
+├── windows/         # Script Batch per Windows
+│   ├── install.bat  # Installazione automatica del sistema
+│   ├── backup.bat   # Backup completo di file e database
+│   └── maintenance.bat # Manutenzione e ottimizzazione
+└── README.md        # Guida agli script
 ```
 
+## 🚀 Utilizzo Rapido
+
+### Linux/macOS
+```bash
+# Navigare alla cartella del progetto
+cd /percorso/al/progetto
+
+# Rendere eseguibili (solo la prima volta)
+chmod +x scripts/linux/*.sh
+
+# Eseguire uno script
+./scripts/linux/install.sh
+./scripts/linux/backup.sh
+./scripts/linux/maintenance.sh
+./scripts/linux/update.sh
+```
+
+### Windows
+```cmd
+# Navigare alla cartella del progetto
+cd C:\percorso\al\progetto
+
+# Eseguire uno script (doppio click o da cmd)
+scripts\windows\install.bat
+scripts\windows\backup.bat
+scripts\windows\maintenance.bat
+```
+
+## � Script Disponibili
+
+### 🚀 `install.sh/install.bat`
+**Installazione automatica del sistema**
+
 **Funzionalità:**
-- Rileva automaticamente il server web (XAMPP, MAMP, Apache)
+- Rileva automaticamente il server web (XAMPP, MAMP, Apache, WAMP)
 - Verifica prerequisiti PHP e estensioni
 - Copia file nella cartella corretta
 - Configura database MySQL
@@ -27,12 +67,8 @@ bash install.sh
 
 ---
 
-### 💾 `backup.sh`
+### 💾 `backup.sh/backup.bat`
 **Backup completo di file e database**
-
-```bash
-bash backup.sh
-```
 
 **Cosa salva:**
 - Tutti i file dell'applicazione (escluso .git)
@@ -71,12 +107,8 @@ bash restore.sh
 
 ---
 
-### 🛠️ `maintenance.sh`
+### 🛠️ `maintenance.sh/maintenance.bat`
 **Manutenzione e ottimizzazione sistema**
-
-```bash
-bash maintenance.sh
-```
 
 **Operazioni:**
 1. **Check sistema**: Verifica PHP, estensioni, spazio disco
@@ -91,12 +123,8 @@ bash maintenance.sh
 
 ---
 
-### 🔄 `update.sh`
+### 🔄 `update.sh` (solo Linux/macOS)
 **Aggiornamento sistema via Git**
-
-```bash
-bash update.sh
-```
 
 **Modalità:**
 1. **Automatico**: Aggiornamento senza domande
