@@ -3,6 +3,7 @@ require_once 'includes/bootstrap.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
+$current_user = Auth::getCurrentUser();
 $error = '';
 $success = '';
 
@@ -31,10 +32,11 @@ if ($_POST) {
         $error = 'L\'importo da versare non può essere maggiore dell\'importo lordo';
     } else {
         try {
+            // Associa automaticamente lo scontrino all'utente e alla filiale corrente
             $db->query("
-                INSERT INTO scontrini (nome, data_scontrino, lordo, da_versare, note) 
-                VALUES (?, ?, ?, ?, ?)
-            ", [$nome, $data_scontrino, $lordo, $da_versare, $note]);
+                INSERT INTO scontrini (nome, data_scontrino, lordo, da_versare, note, utente_id, filiale_id) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ", [$nome, $data_scontrino, $lordo, $da_versare, $note, $current_user['id'], $current_user['filiale_id']]);
             
             Utils::setFlashMessage('success', 'Scontrino aggiunto con successo!');
             Utils::redirect('index.php');

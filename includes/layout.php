@@ -51,12 +51,30 @@
             <a href="aggiungi.php"><i class="fas fa-plus"></i> Aggiungi</a>
             <a href="archivio.php"><i class="fas fa-archive"></i> Archivio</a>
             <a href="attivita.php"><i class="fas fa-clock"></i> Attività</a>
-            <?php if ($_SESSION['ruolo'] === 'admin'): ?>
-            <a href="utenti.php"><i class="fas fa-users"></i> Utenti</a>
+            
+            <?php if (Auth::isAdmin() || Auth::isResponsabile()): ?>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-dropdown-toggle"><i class="fas fa-cog"></i> Gestione</a>
+                    <div class="nav-dropdown-menu">
+                        <a href="utenti.php"><i class="fas fa-users"></i> Utenti</a>
+                        <a href="filiali.php"><i class="fas fa-building"></i> Filiali</a>
+                    </div>
+                </div>
             <?php endif; ?>
         </div>
         <div class="user-info">
-            Benvenuto, <?php echo htmlspecialchars($_SESSION['nome']); ?>
+            <div class="user-details">
+                <strong><?php echo htmlspecialchars($_SESSION['nome']); ?></strong>
+                <small>
+                    <?php 
+                    $ruoli = ['admin' => 'Amministratore', 'responsabile' => 'Responsabile', 'utente' => 'Utente'];
+                    echo $ruoli[$_SESSION['ruolo']] ?? $_SESSION['ruolo'];
+                    ?>
+                    <?php if (!empty($_SESSION['filiale_nome'])): ?>
+                        - <?php echo htmlspecialchars($_SESSION['filiale_nome']); ?>
+                    <?php endif; ?>
+                </small>
+            </div>
             <a href="logout.php" class="btn btn-sm" style="margin-left: 10px;"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </nav>

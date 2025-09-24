@@ -48,6 +48,62 @@ h1 {
     background: #c82333; 
 }
 
+/* Stili per dropdown menu */
+.nav-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.nav-dropdown-toggle {
+    cursor: pointer;
+}
+
+.nav-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-width: 150px;
+    z-index: 1000;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu {
+    display: block;
+}
+
+.nav-dropdown-menu a {
+    display: block;
+    padding: 10px 15px;
+    color: #333;
+    text-decoration: none;
+    border-bottom: 1px solid #eee;
+}
+
+.nav-dropdown-menu a:hover {
+    background: #f8f9fa;
+}
+
+.nav-dropdown-menu a:last-child {
+    border-bottom: none;
+}
+
+/* Stili per user info */
+.user-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-right: 10px;
+}
+
+.user-details small {
+    color: #666;
+    font-size: 0.85em;
+}
+
 .btn-success { 
     background: #28a745; 
 }

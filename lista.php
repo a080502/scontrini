@@ -3,48 +3,67 @@ require_once 'includes/bootstrap.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
+$current_user = Auth::getCurrentUser();
 
 // Filtri
 $filtro = $_GET['filtro'] ?? 'tutti';
 $anno = $_GET['anno'] ?? '';
 $mese = $_GET['mese'] ?? '';
 
-// Costruisci query con filtri
-$where_conditions = ["archiviato = 0"];
+// Costruisci query con filtri e permessi
+$where_conditions = ["s.archiviato = 0"];
 $params = [];
 
+// Filtri per permessi utente
+if (Auth::isAdmin()) {
+    // Admin vede tutto - nessun filtro aggiuntivo
+} elseif (Auth::isResponsabile()) {
+    // Responsabile vede solo la sua filiale
+    $where_conditions[] = "s.filiale_id = ?";
+    $params[] = $current_user['filiale_id'];
+} else {
+    // Utente normale vede solo i suoi scontrini
+    $where_conditions[] = "s.utente_id = ?";
+    $params[] = $current_user['id'];
+}
+
 if ($anno) {
-    $where_conditions[] = "YEAR(data_scontrino) = ?";
+    $where_conditions[] = "YEAR(s.data_scontrino) = ?";
     $params[] = $anno;
 }
 
 if ($mese) {
-    $where_conditions[] = "MONTH(data_scontrino) = ?";
+    $where_conditions[] = "MONTH(s.data_scontrino) = ?";
     $params[] = $mese;
 }
 
 switch ($filtro) {
     case 'da_incassare':
-        $where_conditions[] = "incassato = 0";
+        $where_conditions[] = "s.incassato = 0";
         break;
     case 'incassati':
-        $where_conditions[] = "incassato = 1";
+        $where_conditions[] = "s.incassato = 1";
         break;
     case 'da_versare':
-        $where_conditions[] = "incassato = 1 AND versato = 0";
+        $where_conditions[] = "s.incassato = 1 AND s.versato = 0";
         break;
     case 'versati':
-        $where_conditions[] = "versato = 1";
+        $where_conditions[] = "s.versato = 1";
         break;
 }
 
 $where_clause = implode(" AND ", $where_conditions);
 
-// Recupera scontrini raggruppati per nome
-$scontrini = $db->fetchAll("
-    SELECT * FROM scontrini 
+// Recupera scontrini con informazioni utente e filiale
+$scontrini = $db->query("
+    SELECT s.*, 
+           u.nome as utente_nome, u.username as utente_username,
+           f.nome as filiale_nome
+    FROM scontrini s 
+    LEFT JOIN utenti u ON s.utente_id = u.id
+    LEFT JOIN filiali f ON s.filiale_id = f.id
     WHERE $where_clause 
-    ORDER BY nome ASC, data_scontrino DESC, created_at DESC
+    ORDER BY s.nome ASC, s.data_scontrino DESC, s.created_at DESC
 ", $params);
 
 // Raggruppa scontrini per nome
@@ -61,19 +80,32 @@ foreach ($scontrini as $scontrino) {
 $stats = $db->fetchOne("
     SELECT 
         COUNT(*) as totale,
-        SUM(lordo) as totale_importo,
-        SUM(CASE WHEN incassato = 1 THEN lordo ELSE 0 END) as totale_incassato,
-        SUM(CASE WHEN versato = 1 THEN lordo ELSE 0 END) as totale_versato
-    FROM scontrini 
+        SUM(s.lordo) as totale_importo,
+        SUM(CASE WHEN s.incassato = 1 THEN s.lordo ELSE 0 END) as totale_incassato,
+        SUM(CASE WHEN s.versato = 1 THEN s.lordo ELSE 0 END) as totale_versato
+    FROM scontrini s
+    LEFT JOIN utenti u ON s.utente_id = u.id
+    LEFT JOIN filiali f ON s.filiale_id = f.id
     WHERE $where_clause
 ", $params);
 
-// Anni disponibili per filtro
-$anni = $db->fetchAll("
-    SELECT DISTINCT YEAR(data_scontrino) as anno 
-    FROM scontrini 
+// Anni disponibili per filtro (con stesso controllo permessi)
+$anni_where = $where_conditions;
+// Rimuovi i filtri di anno/mese per ottenere tutti gli anni disponibili
+$anni_where = array_filter($anni_where, function($condition) {
+    return !str_contains($condition, 'YEAR(') && !str_contains($condition, 'MONTH(');
+});
+$anni_clause = implode(" AND ", $anni_where);
+$anni_params = array_slice($params, 0, count($anni_where) - count($where_conditions) + count($anni_where));
+
+$anni = $db->query("
+    SELECT DISTINCT YEAR(s.data_scontrino) as anno 
+    FROM scontrini s
+    LEFT JOIN utenti u ON s.utente_id = u.id
+    LEFT JOIN filiali f ON s.filiale_id = f.id
+    " . ($anni_clause ? "WHERE $anni_clause" : "") . "
     ORDER BY anno DESC
-");
+", $anni_params);
 
 $page_title = 'Lista Scontrini - ' . SITE_NAME;
 $page_header = 'Lista Scontrini Attivi';
