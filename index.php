@@ -7,19 +7,26 @@ $current_user = Auth::getCurrentUser();
 
 // Prepara filtri per le query basati sul ruolo dell'utente
 $where_clause = "";
+$where_clause_with_prefix = ""; // Per query con JOIN
 $query_params = [];
+$query_params_with_prefix = []; // Per query con JOIN
 
 if (Auth::isAdmin()) {
     // Admin vede tutto
     $where_clause = "";
+    $where_clause_with_prefix = "";
 } elseif (Auth::isResponsabile()) {
     // Responsabile vede solo la sua filiale
     $where_clause = " AND filiale_id = ?";
+    $where_clause_with_prefix = " AND s.filiale_id = ?";
     $query_params[] = $current_user['filiale_id'];
+    $query_params_with_prefix[] = $current_user['filiale_id'];
 } else {
     // Utente normale vede solo i propri scontrini
     $where_clause = " AND utente_id = ?";
+    $where_clause_with_prefix = " AND s.utente_id = ?";
     $query_params[] = $current_user['id'];
+    $query_params_with_prefix[] = $current_user['id'];
 }
 
 // Statistiche scontrini con filtro per ruolo
@@ -53,10 +60,10 @@ $ultimi_scontrini = $db->fetchAll("
     FROM scontrini s
     LEFT JOIN utenti u ON s.utente_id = u.id
     LEFT JOIN filiali f ON s.filiale_id = f.id
-    WHERE 1=1" . $where_clause . "
+    WHERE 1=1" . $where_clause_with_prefix . "
     ORDER BY s.created_at DESC 
     LIMIT 5
-", $query_params);
+", $query_params_with_prefix);
 
 $page_title = 'Dashboard - ' . SITE_NAME;
 $page_header = 'Dashboard - Gestione Scontrini Fiscali';
