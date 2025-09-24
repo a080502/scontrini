@@ -10,22 +10,21 @@ $filtro = $_GET['filtro'] ?? 'tutti';
 $anno = $_GET['anno'] ?? '';
 $mese = $_GET['mese'] ?? '';
 
+// Nuovi filtri avanzati
+$filters = [
+    'filiale_id' => $_GET['filiale_id'] ?? '',
+    'utente_id' => $_GET['utente_id'] ?? '',
+    'nome_filter' => $_GET['nome_filter'] ?? ''
+];
+
 // Costruisci query con filtri e permessi
 $where_conditions = ["s.archiviato = 0"];
 $params = [];
 
-// Filtri per permessi utente
-if (Auth::isAdmin()) {
-    // Admin vede tutto - nessun filtro aggiuntivo
-} elseif (Auth::isResponsabile()) {
-    // Responsabile vede solo la sua filiale
-    $where_conditions[] = "s.filiale_id = ?";
-    $params[] = $current_user['filiale_id'];
-} else {
-    // Utente normale vede solo i suoi scontrini
-    $where_conditions[] = "s.utente_id = ?";
-    $params[] = $current_user['id'];
-}
+// Applica filtri avanzati usando la nuova funzione
+$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters);
+$where_conditions = array_merge($where_conditions, $advanced_filter_data['where_conditions']);
+$params = array_merge($params, $advanced_filter_data['params']);
 
 if ($anno) {
     $where_conditions[] = "YEAR(s.data_scontrino) = ?";
@@ -50,6 +49,27 @@ switch ($filtro) {
     case 'versati':
         $where_conditions[] = "s.versato = 1";
         break;
+}
+
+// Funzione helper per creare URL che mantengono i filtri avanzati
+function createFilterUrl($base_filtro, $anno, $mese, $filters) {
+    $params = [
+        'filtro' => $base_filtro,
+        'anno' => $anno,
+        'mese' => $mese
+    ];
+    
+    if (!empty($filters['filiale_id'])) {
+        $params['filiale_id'] = $filters['filiale_id'];
+    }
+    if (!empty($filters['utente_id'])) {
+        $params['utente_id'] = $filters['utente_id'];
+    }
+    if (!empty($filters['nome_filter'])) {
+        $params['nome_filter'] = $filters['nome_filter'];
+    }
+    
+    return '?' . http_build_query($params);
 }
 
 $where_clause = implode(" AND ", $where_conditions);
@@ -115,21 +135,32 @@ ob_start();
 
 <div class="filtri">
     <h4>Filtri</h4>
-    <a href="?filtro=tutti&anno=<?php echo $anno; ?>&mese=<?php echo $mese; ?>" 
+    <a href="<?php echo createFilterUrl('tutti', $anno, $mese, $filters); ?>" 
        class="btn <?php echo $filtro === 'tutti' ? 'active' : ''; ?>">Tutti</a>
-    <a href="?filtro=da_incassare&anno=<?php echo $anno; ?>&mese=<?php echo $mese; ?>" 
+    <a href="<?php echo createFilterUrl('da_incassare', $anno, $mese, $filters); ?>" 
        class="btn <?php echo $filtro === 'da_incassare' ? 'active' : ''; ?>">Da Incassare</a>
-    <a href="?filtro=incassati&anno=<?php echo $anno; ?>&mese=<?php echo $mese; ?>" 
+    <a href="<?php echo createFilterUrl('incassati', $anno, $mese, $filters); ?>" 
        class="btn <?php echo $filtro === 'incassati' ? 'active' : ''; ?>">Incassati</a>
-    <a href="?filtro=da_versare&anno=<?php echo $anno; ?>&mese=<?php echo $mese; ?>" 
+    <a href="<?php echo createFilterUrl('da_versare', $anno, $mese, $filters); ?>" 
        class="btn <?php echo $filtro === 'da_versare' ? 'active' : ''; ?>">Da Versare</a>
-    <a href="?filtro=versati&anno=<?php echo $anno; ?>&mese=<?php echo $mese; ?>" 
+    <a href="<?php echo createFilterUrl('versati', $anno, $mese, $filters); ?>" 
        class="btn <?php echo $filtro === 'versati' ? 'active' : ''; ?>">Versati</a>
 </div>
+
+<?php echo Utils::renderAdvancedFiltersForm($db, $current_user, $filters, 'lista.php'); ?>
 
 <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
     <form method="GET" style="display: inline-block;">
         <input type="hidden" name="filtro" value="<?php echo htmlspecialchars($filtro); ?>">
+        <?php if ($filters['filiale_id']): ?>
+            <input type="hidden" name="filiale_id" value="<?php echo htmlspecialchars($filters['filiale_id']); ?>">
+        <?php endif; ?>
+        <?php if ($filters['utente_id']): ?>
+            <input type="hidden" name="utente_id" value="<?php echo htmlspecialchars($filters['utente_id']); ?>">
+        <?php endif; ?>
+        <?php if ($filters['nome_filter']): ?>
+            <input type="hidden" name="nome_filter" value="<?php echo htmlspecialchars($filters['nome_filter']); ?>">
+        <?php endif; ?>
         
         <label for="anno">Anno:</label>
         <select name="anno" id="anno" onchange="this.form.submit()">

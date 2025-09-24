@@ -5,28 +5,26 @@ Auth::requireLogin();
 $db = Database::getInstance();
 $current_user = Auth::getCurrentUser();
 
+// Filtri per dashboard (opzionali)
+$filters = [
+    'filiale_id' => $_GET['filiale_id'] ?? '',
+    'utente_id' => $_GET['utente_id'] ?? '',
+    'nome_filter' => $_GET['nome_filter'] ?? ''
+];
+
 // Prepara filtri per le query basati sul ruolo dell'utente
 $where_clause = "";
 $where_clause_with_prefix = ""; // Per query con JOIN
 $query_params = [];
 $query_params_with_prefix = []; // Per query con JOIN
 
-if (Auth::isAdmin()) {
-    // Admin vede tutto
-    $where_clause = "";
-    $where_clause_with_prefix = "";
-} elseif (Auth::isResponsabile()) {
-    // Responsabile vede solo la sua filiale
-    $where_clause = " AND filiale_id = ?";
-    $where_clause_with_prefix = " AND s.filiale_id = ?";
-    $query_params[] = $current_user['filiale_id'];
-    $query_params_with_prefix[] = $current_user['filiale_id'];
-} else {
-    // Utente normale vede solo i propri scontrini
-    $where_clause = " AND utente_id = ?";
-    $where_clause_with_prefix = " AND s.utente_id = ?";
-    $query_params[] = $current_user['id'];
-    $query_params_with_prefix[] = $current_user['id'];
+// Applica filtri avanzati usando la nuova funzione
+$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters);
+if (!empty($advanced_filter_data['where_conditions'])) {
+    $where_clause = " AND " . implode(" AND ", $advanced_filter_data['where_conditions']);
+    $where_clause_with_prefix = " AND " . implode(" AND ", $advanced_filter_data['where_conditions']);
+    $query_params = $advanced_filter_data['params'];
+    $query_params_with_prefix = $advanced_filter_data['params'];
 }
 
 // Statistiche scontrini con filtro per ruolo
@@ -70,6 +68,10 @@ $page_header = 'Dashboard - Gestione Scontrini Fiscali';
 
 ob_start();
 ?>
+
+<?php if (Auth::isAdmin() || Auth::isResponsabile()): ?>
+    <?php echo Utils::renderAdvancedFiltersForm($db, $current_user, $filters, 'index.php'); ?>
+<?php endif; ?>
 
 <div class="stats-grid">
     <div class="stat-card">

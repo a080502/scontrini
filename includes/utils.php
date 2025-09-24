@@ -63,5 +63,139 @@ class Utils {
     public static function validateCSRFToken($token) {
         return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
     }
+    
+    /**
+     * Gestisce i filtri avanzati per le tabelle in base al ruolo utente
+     */
+    public static function buildAdvancedFilters($db, $current_user, $filters = []) {
+        $where_conditions = [];
+        $params = [];
+        $available_filters = [];
+        
+        // Filtri base per permessi utente (già esistenti)
+        if (Auth::isAdmin()) {
+            // Admin vede tutto - può filtrare per filiale, nome e utente
+            $available_filters = ['filiale', 'nome', 'utente'];
+        } elseif (Auth::isResponsabile()) {
+            // Responsabile vede solo la sua filiale - può filtrare per nome e utente
+            $where_conditions[] = "s.filiale_id = ?";
+            $params[] = $current_user['filiale_id'];
+            $available_filters = ['nome', 'utente'];
+        } else {
+            // Utente normale vede solo i suoi - può filtrare per nome
+            $where_conditions[] = "s.utente_id = ?";
+            $params[] = $current_user['id'];
+            $available_filters = ['nome'];
+        }
+        
+        // Applica filtri aggiuntivi
+        if (!empty($filters['filiale_id']) && in_array('filiale', $available_filters)) {
+            $where_conditions[] = "s.filiale_id = ?";
+            $params[] = $filters['filiale_id'];
+        }
+        
+        if (!empty($filters['utente_id']) && in_array('utente', $available_filters)) {
+            $where_conditions[] = "s.utente_id = ?";
+            $params[] = $filters['utente_id'];
+        }
+        
+        if (!empty($filters['nome_filter']) && in_array('nome', $available_filters)) {
+            $where_conditions[] = "s.nome LIKE ?";
+            $params[] = "%{$filters['nome_filter']}%";
+        }
+        
+        return [
+            'where_conditions' => $where_conditions,
+            'params' => $params,
+            'available_filters' => $available_filters
+        ];
+    }
+    
+    /**
+     * Genera il HTML per i filtri avanzati
+     */
+    public static function renderAdvancedFiltersForm($db, $current_user, $current_filters = [], $base_url = '') {
+        $filter_data = self::buildAdvancedFilters($db, $current_user, $current_filters);
+        $available_filters = $filter_data['available_filters'];
+        
+        $html = '<div class="advanced-filters" style="background: #e9ecef; padding: 15px; border-radius: 5px; margin: 10px 0;">';
+        $html .= '<h5 style="margin-bottom: 10px;">Filtri Avanzati</h5>';
+        $html .= '<form method="GET" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: end;">';
+        
+        // Mantieni filtri esistenti
+        foreach ($_GET as $key => $value) {
+            if (!in_array($key, ['filiale_id', 'utente_id', 'nome_filter']) && !empty($value)) {
+                $html .= '<input type="hidden" name="' . htmlspecialchars($key) . '" value="' . htmlspecialchars($value) . '">';
+            }
+        }
+        
+        // Filtro Filiale (solo per admin)
+        if (in_array('filiale', $available_filters)) {
+            $filiali = $db->fetchAll("SELECT id, nome FROM filiali WHERE attiva = 1 ORDER BY nome");
+            $html .= '<div>';
+            $html .= '<label for="filiale_id" style="display: block; font-size: 12px; margin-bottom: 2px;">Filiale:</label>';
+            $html .= '<select name="filiale_id" id="filiale_id" style="padding: 5px;">';
+            $html .= '<option value="">Tutte</option>';
+            foreach ($filiali as $filiale) {
+                $selected = ($current_filters['filiale_id'] ?? '') == $filiale['id'] ? 'selected' : '';
+                $html .= '<option value="' . $filiale['id'] . '" ' . $selected . '>' . htmlspecialchars($filiale['nome']) . '</option>';
+            }
+            $html .= '</select>';
+            $html .= '</div>';
+        }
+        
+        // Filtro Utente (per admin e responsabili)
+        if (in_array('utente', $available_filters)) {
+            // Per admin: tutti gli utenti, per responsabile: solo della sua filiale
+            if (Auth::isAdmin()) {
+                $utenti = $db->fetchAll("
+                    SELECT u.id, u.nome, f.nome as filiale_nome 
+                    FROM utenti u 
+                    LEFT JOIN filiali f ON u.filiale_id = f.id 
+                    WHERE u.attivo = 1 
+                    ORDER BY u.nome
+                ");
+            } else {
+                $utenti = $db->fetchAll("
+                    SELECT u.id, u.nome 
+                    FROM utenti u 
+                    WHERE u.filiale_id = ? AND u.attivo = 1 
+                    ORDER BY u.nome
+                ", [$current_user['filiale_id']]);
+            }
+            
+            $html .= '<div>';
+            $html .= '<label for="utente_id" style="display: block; font-size: 12px; margin-bottom: 2px;">Utente:</label>';
+            $html .= '<select name="utente_id" id="utente_id" style="padding: 5px;">';
+            $html .= '<option value="">Tutti</option>';
+            foreach ($utenti as $utente) {
+                $selected = ($current_filters['utente_id'] ?? '') == $utente['id'] ? 'selected' : '';
+                $display_name = Auth::isAdmin() && isset($utente['filiale_nome']) 
+                    ? $utente['nome'] . ' (' . $utente['filiale_nome'] . ')'
+                    : $utente['nome'];
+                $html .= '<option value="' . $utente['id'] . '" ' . $selected . '>' . htmlspecialchars($display_name) . '</option>';
+            }
+            $html .= '</select>';
+            $html .= '</div>';
+        }
+        
+        // Filtro Nome (per tutti)
+        if (in_array('nome', $available_filters)) {
+            $html .= '<div>';
+            $html .= '<label for="nome_filter" style="display: block; font-size: 12px; margin-bottom: 2px;">Nome Scontrino:</label>';
+            $html .= '<input type="text" name="nome_filter" id="nome_filter" value="' . htmlspecialchars($current_filters['nome_filter'] ?? '') . '" placeholder="Cerca per nome..." style="padding: 5px; width: 150px;">';
+            $html .= '</div>';
+        }
+        
+        $html .= '<div>';
+        $html .= '<button type="submit" class="btn btn-sm" style="padding: 5px 10px;">Applica</button>';
+        $html .= '<a href="' . $base_url . '" class="btn btn-sm btn-secondary" style="padding: 5px 10px; margin-left: 5px;">Reset</a>';
+        $html .= '</div>';
+        
+        $html .= '</form>';
+        $html .= '</div>';
+        
+        return $html;
+    }
 }
 ?>

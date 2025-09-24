@@ -5,21 +5,20 @@ Auth::requireLogin();
 $db = Database::getInstance();
 $current_user = Auth::getCurrentUser();
 
-// Prepara filtri per le query basati sul ruolo dell'utente
+// Nuovi filtri avanzati per attività
+$filters = [
+    'filiale_id' => $_GET['filiale_id'] ?? '',
+    'utente_id' => $_GET['utente_id'] ?? '',
+    'nome_filter' => $_GET['nome_filter'] ?? ''
+];
+
+// Applica filtri avanzati usando la nuova funzione
+$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters);
 $role_filter = "";
 $params = [];
-
-if (Auth::isAdmin()) {
-    // Admin vede tutto - nessun filtro aggiuntivo
-    $role_filter = "";
-} elseif (Auth::isResponsabile()) {
-    // Responsabile vede solo la sua filiale
-    $role_filter = " AND s.filiale_id = ?";
-    $params[] = $current_user['filiale_id'];
-} else {
-    // Utente normale vede solo i propri scontrini
-    $role_filter = " AND s.utente_id = ?";
-    $params[] = $current_user['id'];
+if (!empty($advanced_filter_data['where_conditions'])) {
+    $role_filter = " AND " . implode(" AND ", $advanced_filter_data['where_conditions']);
+    $params = $advanced_filter_data['params'];
 }
 
 // Recupera tutte le attività recenti con filtro per ruolo
@@ -127,6 +126,8 @@ if (Auth::isAdmin()) {
 
 ob_start();
 ?>
+
+<?php echo Utils::renderAdvancedFiltersForm($db, $current_user, $filters, 'attivita.php'); ?>
 
 <style>
 .timeline {

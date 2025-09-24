@@ -9,30 +9,31 @@ $current_user = Auth::getCurrentUser();
 $anno = $_GET['anno'] ?? '';
 $mese = $_GET['mese'] ?? '';
 
+// Nuovi filtri avanzati
+$filters = [
+    'filiale_id' => $_GET['filiale_id'] ?? '',
+    'utente_id' => $_GET['utente_id'] ?? '',
+    'nome_filter' => $_GET['nome_filter'] ?? ''
+];
+
 // Costruisci query con filtri e permessi utente
-$where_conditions = ["archiviato = 1"];
+$where_conditions = ["s.archiviato = 1"];
 $params = [];
 
-// Filtri per permessi utente
-if (Auth::isAdmin()) {
-    // Admin vede tutto - nessun filtro aggiuntivo
-} elseif (Auth::isResponsabile()) {
-    // Responsabile vede solo la sua filiale
-    $where_conditions[] = "filiale_id = ?";
-    $params[] = $current_user['filiale_id'];
-} else {
-    // Utente normale vede solo i suoi scontrini
-    $where_conditions[] = "utente_id = ?";
-    $params[] = $current_user['id'];
-}
+// Applica filtri avanzati usando la nuova funzione
+$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters);
+// Modifica le condizioni per adattarle all'archivio (archiviato = 1)
+$where_conditions[0] = "s.archiviato = 1";
+$where_conditions = array_merge($where_conditions, $advanced_filter_data['where_conditions']);
+$params = array_merge($params, $advanced_filter_data['params']);
 
 if ($anno) {
-    $where_conditions[] = "YEAR(data_scontrino) = ?";
+    $where_conditions[] = "YEAR(s.data_scontrino) = ?";
     $params[] = $anno;
 }
 
 if ($mese) {
-    $where_conditions[] = "MONTH(data_scontrino) = ?";
+    $where_conditions[] = "MONTH(s.data_scontrino) = ?";
     $params[] = $mese;
 }
 
@@ -40,9 +41,14 @@ $where_clause = implode(" AND ", $where_conditions);
 
 // Recupera scontrini archiviati
 $scontrini = $db->fetchAll("
-    SELECT * FROM scontrini 
+    SELECT s.*, 
+           u.nome as utente_nome, u.username as utente_username,
+           f.nome as filiale_nome
+    FROM scontrini s 
+    LEFT JOIN utenti u ON s.utente_id = u.id
+    LEFT JOIN filiali f ON s.filiale_id = f.id
     WHERE $where_clause 
-    ORDER BY data_archiviazione DESC, data_scontrino DESC
+    ORDER BY s.data_archiviazione DESC, s.data_scontrino DESC
 ", $params);
 
 // Statistiche archivio
@@ -71,8 +77,19 @@ $page_header = 'Archivio Scontrini';
 ob_start();
 ?>
 
+<?php echo Utils::renderAdvancedFiltersForm($db, $current_user, $filters, 'archivio.php'); ?>
+
 <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
     <form method="GET" style="display: inline-block;">
+        <?php if ($filters['filiale_id']): ?>
+            <input type="hidden" name="filiale_id" value="<?php echo htmlspecialchars($filters['filiale_id']); ?>">
+        <?php endif; ?>
+        <?php if ($filters['utente_id']): ?>
+            <input type="hidden" name="utente_id" value="<?php echo htmlspecialchars($filters['utente_id']); ?>">
+        <?php endif; ?>
+        <?php if ($filters['nome_filter']): ?>
+            <input type="hidden" name="nome_filter" value="<?php echo htmlspecialchars($filters['nome_filter']); ?>">
+        <?php endif; ?>
         
         <label for="anno">Anno:</label>
         <select name="anno" id="anno" onchange="this.form.submit()">
