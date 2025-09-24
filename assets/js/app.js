@@ -81,21 +81,58 @@ document.addEventListener('DOMContentLoaded', function() {
     const nomeInput = document.getElementById('nome');
     if (nomeInput) {
         fetch('api/nomi-scontrini.php')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.success) {
+                if (data.success && data.nomi) {
                     autocomplete(nomeInput, data.nomi);
+                    console.log('Autocomplete caricato con', data.nomi.length, 'nomi');
+                } else {
+                    console.log('Nessun nome disponibile per autocomplete');
                 }
             })
-            .catch(error => console.log('Errore caricamento autocomplete:', error));
+            .catch(error => {
+                console.log('Errore caricamento autocomplete:', error);
+                // Fallback: autocomplete con array vuoto
+                autocomplete(nomeInput, []);
+            });
     }
     
-    // Formattazione automatica importi
+    // Formattazione automatica importi - FIX: non cancellare valore
     const lordo = document.getElementById('lordo');
+    const daVersare = document.getElementById('da_versare');
+    
     if (lordo) {
         lordo.addEventListener('blur', function() {
             let value = this.value.replace(',', '.');
-            if (!isNaN(value) && value !== '') {
+            if (!isNaN(value) && value !== '' && value !== '0') {
+                // Formatta solo se c'è un valore valido
+                this.value = parseFloat(value).toFixed(2).replace('.', ',');
+                
+                // Auto-riempi da_versare se è vuoto
+                if (daVersare && daVersare.value === '') {
+                    daVersare.value = this.value;
+                }
+            }
+        });
+        
+        // Suggerimento per auto-riempimento
+        lordo.addEventListener('input', function() {
+            if (daVersare && daVersare.value === '' && this.value !== '') {
+                daVersare.placeholder = 'Premi Tab per copiare ' + this.value;
+            }
+        });
+    }
+    
+    // Formattazione campo da_versare
+    if (daVersare) {
+        daVersare.addEventListener('blur', function() {
+            let value = this.value.replace(',', '.');
+            if (!isNaN(value) && value !== '' && value !== '0') {
                 this.value = parseFloat(value).toFixed(2).replace('.', ',');
             }
         });

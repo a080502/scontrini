@@ -10,6 +10,7 @@ if ($_POST) {
     $nome = Utils::sanitizeString($_POST['nome'] ?? '');
     $data_scontrino = $_POST['data_scontrino'] ?? '';
     $lordo = Utils::safeFloat($_POST['lordo'] ?? '');
+    $da_versare = Utils::safeFloat($_POST['da_versare'] ?? '');
     $note = Utils::sanitizeString($_POST['note'] ?? '');
     
     // Validazione
@@ -19,12 +20,16 @@ if ($_POST) {
         $error = 'La data dello scontrino è obbligatoria';
     } elseif ($lordo <= 0) {
         $error = 'L\'importo lordo deve essere maggiore di zero';
+    } elseif ($da_versare < 0) {
+        $error = 'L\'importo da versare non può essere negativo';
+    } elseif ($da_versare > $lordo) {
+        $error = 'L\'importo da versare non può essere maggiore dell\'importo lordo';
     } else {
         try {
             $db->query("
-                INSERT INTO scontrini (nome, data_scontrino, lordo, note) 
-                VALUES (?, ?, ?, ?)
-            ", [$nome, $data_scontrino, $lordo, $note]);
+                INSERT INTO scontrini (nome, data_scontrino, lordo, da_versare, note) 
+                VALUES (?, ?, ?, ?, ?)
+            ", [$nome, $data_scontrino, $lordo, $da_versare, $note]);
             
             Utils::setFlashMessage('success', 'Scontrino aggiunto con successo!');
             Utils::redirect('index.php');
@@ -68,7 +73,15 @@ ob_start();
         <input type="number" id="lordo" name="lordo" step="0.01" min="0.01" required
                value="<?php echo htmlspecialchars($lordo ?? ''); ?>"
                placeholder="0,00">
-        <small class="text-muted">Usa la virgola o il punto per i decimali</small>
+        <small class="text-muted">Importo totale dello scontrino</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="da_versare"><i class="fas fa-hand-holding-usd"></i> Importo da Versare</label>
+        <input type="number" id="da_versare" name="da_versare" step="0.01" min="0"
+               value="<?php echo htmlspecialchars($da_versare ?? ''); ?>"
+               placeholder="0,00">
+        <small class="text-muted">Importo che deve essere versato (lascia vuoto se uguale all'importo lordo)</small>
     </div>
     
     <div class="form-group">
