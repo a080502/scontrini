@@ -103,16 +103,16 @@ if exist "%SCRIPT_DIR%..\..\config.php" (
     if exist "%PROGRAMFILES%\MySQL\MySQL Server 8.0\bin\mysql.exe" set "MYSQL_PATH=%PROGRAMFILES%\MySQL\MySQL Server 8.0\bin\mysql.exe"
     
     if defined MYSQL_PATH (
-        "%MYSQL_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% -e "SELECT 1;" %DB_NAME% >nul 2>&1
+        "%MYSQL_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% -e "SELECT 1;" "%DB_NAME%" >nul 2>&1
         if %ERRORLEVEL% EQU 0 (
             echo %GREEN%[OK]%NC% Connessione database: OK
             
             REM Statistiche database
-            for /f %%a in ('"%MYSQL_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% %DB_NAME% -se "SELECT COUNT(*) FROM scontrini;" 2^>nul') do (
+            for /f %%a in ('"%MYSQL_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% "%DB_NAME%" -se "SELECT COUNT(*) FROM scontrini;" 2^>nul') do (
                 echo %BLUE%[INFO]%NC% Scontrini nel database: %%a
             )
             
-            for /f %%a in ('"%MYSQL_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% %DB_NAME% -se "SELECT COUNT(*) FROM utenti;" 2^>nul') do (
+            for /f %%a in ('"%MYSQL_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% "%DB_NAME%" -se "SELECT COUNT(*) FROM utenti;" 2^>nul') do (
                 echo %BLUE%[INFO]%NC% Utenti nel database: %%a
             )
             
