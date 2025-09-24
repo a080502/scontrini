@@ -41,26 +41,26 @@ php -m | findstr /C:"mbstring" >nul && echo %GREEN%[OK]%NC% Estensione MBString:
 
 REM Spazio disco
 echo %BLUE%[INFO]%NC% Controllo spazio disco...
-for /f "tokens=3" %%a in ('dir /-c "%SCRIPT_DIR%" ^| findstr /C:"byte"') do (
+for /f "tokens=3" %%a in ('dir /-c "%SCRIPT_DIR%..\..\" ^| findstr /C:"byte"') do (
     echo %BLUE%[INFO]%NC% Spazio disponibile nel drive
 )
 
 REM Verifica file principali
 echo %BLUE%[INFO]%NC% Verifica file principali...
 
-if exist "%SCRIPT_DIR%config.php" (
+if exist "%SCRIPT_DIR%..\..\config.php" (
     echo %GREEN%[OK]%NC% config.php: OK
 ) else (
     echo %RED%[ERROR]%NC% config.php: MANCANTE
 )
 
-if exist "%SCRIPT_DIR%index.php" (
+if exist "%SCRIPT_DIR%..\..\index.php" (
     echo %GREEN%[OK]%NC% index.php: OK  
 ) else (
     echo %RED%[ERROR]%NC% index.php: MANCANTE
 )
 
-if exist "%SCRIPT_DIR%includes\database.php" (
+if exist "%SCRIPT_DIR%..\..\includes\database.php" (
     echo %GREEN%[OK]%NC% database.php: OK
 ) else (
     echo %RED%[ERROR]%NC% database.php: MANCANTE
@@ -69,8 +69,8 @@ if exist "%SCRIPT_DIR%includes\database.php" (
 REM Test sintassi PHP
 echo %BLUE%[INFO]%NC% Test sintassi file PHP...
 
-if exist "%SCRIPT_DIR%config.php" (
-    php -l "%SCRIPT_DIR%config.php" >nul 2>&1
+if exist "%SCRIPT_DIR%..\..\config.php" (
+    php -l "%SCRIPT_DIR%..\..\config.php" >nul 2>&1
     if %ERRORLEVEL% EQU 0 (
         echo %GREEN%[OK]%NC% Sintassi config.php: OK
     ) else (
@@ -78,8 +78,8 @@ if exist "%SCRIPT_DIR%config.php" (
     )
 )
 
-if exist "%SCRIPT_DIR%index.php" (
-    php -l "%SCRIPT_DIR%index.php" >nul 2>&1
+if exist "%SCRIPT_DIR%..\..\index.php" (
+    php -l "%SCRIPT_DIR%..\..\index.php" >nul 2>&1
     if %ERRORLEVEL% EQU 0 (
         echo %GREEN%[OK]%NC% Sintassi index.php: OK
     ) else (
@@ -88,14 +88,14 @@ if exist "%SCRIPT_DIR%index.php" (
 )
 
 REM Test database se config.php esiste
-if exist "%SCRIPT_DIR%config.php" (
+if exist "%SCRIPT_DIR%..\..\config.php" (
     echo %BLUE%[INFO]%NC% Test connessione database...
     
     REM Estrai parametri database
-    for /f "tokens=2 delims='" %%a in ('findstr "DB_HOST" "%SCRIPT_DIR%config.php"') do set "DB_HOST=%%a"
-    for /f "tokens=2 delims='" %%a in ('findstr "DB_NAME" "%SCRIPT_DIR%config.php"') do set "DB_NAME=%%a"
-    for /f "tokens=2 delims='" %%a in ('findstr "DB_USER" "%SCRIPT_DIR%config.php"') do set "DB_USER=%%a"
-    for /f "tokens=2 delims='" %%a in ('findstr "DB_PASS" "%SCRIPT_DIR%config.php"') do set "DB_PASS=%%a"
+    for /f "tokens=2 delims='" %%a in ('findstr "DB_HOST" "%SCRIPT_DIR%..\..\config.php"') do set "DB_HOST=%%a"
+    for /f "tokens=2 delims='" %%a in ('findstr "DB_NAME" "%SCRIPT_DIR%..\..\config.php"') do set "DB_NAME=%%a"
+    for /f "tokens=2 delims='" %%a in ('findstr "DB_USER" "%SCRIPT_DIR%..\..\config.php"') do set "DB_USER=%%a"
+    for /f "tokens=2 delims='" %%a in ('findstr "DB_PASS" "%SCRIPT_DIR%..\..\config.php"') do set "DB_PASS=%%a"
     
     REM Cerca mysql client
     set "MYSQL_PATH="

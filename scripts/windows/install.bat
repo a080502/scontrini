@@ -107,7 +107,7 @@ REM Copia file se necessario
 if not "%SCRIPT_DIR%"=="%INSTALL_DIR%" (
     echo %BLUE%[INFO]%NC% Copia file in corso...
     
-    xcopy "%SCRIPT_DIR%*" "%INSTALL_DIR%\" /E /I /H /Y >nul
+    xcopy "%SCRIPT_DIR%..\\..\\*" "%INSTALL_DIR%\" /E /I /H /Y >nul
     
     if %ERRORLEVEL% EQU 0 (
         echo %GREEN%[OK]%NC% File copiati in %INSTALL_DIR%

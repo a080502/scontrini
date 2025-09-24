@@ -123,10 +123,11 @@ install_files() {
     
     # Copia i file (assumendo che lo script sia nella cartella del progetto)
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
     
-    if [ "$SCRIPT_DIR" != "$INSTALL_DIR" ]; then
-        print_info "Copia file da $SCRIPT_DIR a $INSTALL_DIR"
-        cp -r "$SCRIPT_DIR"/* "$INSTALL_DIR/"
+    if [ "$PROJECT_DIR" != "$INSTALL_DIR" ]; then
+        print_info "Copia file da $PROJECT_DIR a $INSTALL_DIR"
+        cp -r "$PROJECT_DIR"/* "$INSTALL_DIR/"
         print_success "File copiati"
     else
         print_info "Script eseguito nella cartella di destinazione"

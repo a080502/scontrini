@@ -30,17 +30,17 @@ echo %GREEN%[OK]%NC% Cartella backup creata: %BACKUP_DIR%\%BACKUP_NAME%
 REM Leggi configurazione database da config.php
 echo %BLUE%[INFO]%NC% Lettura configurazione database...
 
-if not exist "%SCRIPT_DIR%config.php" (
+if not exist "%SCRIPT_DIR%..\..\config.php" (
     echo %RED%[ERROR]%NC% File config.php non trovato!
     pause
     exit /b 1
 )
 
 REM Estrai parametri database (metodo semplificato per Windows)
-for /f "tokens=2 delims='" %%a in ('findstr "DB_HOST" "%SCRIPT_DIR%config.php"') do set "DB_HOST=%%a"
-for /f "tokens=2 delims='" %%a in ('findstr "DB_NAME" "%SCRIPT_DIR%config.php"') do set "DB_NAME=%%a"
-for /f "tokens=2 delims='" %%a in ('findstr "DB_USER" "%SCRIPT_DIR%config.php"') do set "DB_USER=%%a"
-for /f "tokens=2 delims='" %%a in ('findstr "DB_PASS" "%SCRIPT_DIR%config.php"') do set "DB_PASS=%%a"
+for /f "tokens=2 delims='" %%a in ('findstr "DB_HOST" "%SCRIPT_DIR%..\..\config.php"') do set "DB_HOST=%%a"
+for /f "tokens=2 delims='" %%a in ('findstr "DB_NAME" "%SCRIPT_DIR%..\..\config.php"') do set "DB_NAME=%%a"
+for /f "tokens=2 delims='" %%a in ('findstr "DB_USER" "%SCRIPT_DIR%..\..\config.php"') do set "DB_USER=%%a"
+for /f "tokens=2 delims='" %%a in ('findstr "DB_PASS" "%SCRIPT_DIR%..\..\config.php"') do set "DB_PASS=%%a"
 
 echo %GREEN%[OK]%NC% Configurazione database caricata
 
@@ -48,7 +48,7 @@ REM Backup file applicazione
 echo %BLUE%[INFO]%NC% Backup file applicazione...
 
 REM Usa PowerShell per creare archivio (disponibile su Windows 7+)
-powershell -command "Compress-Archive -Path '%SCRIPT_DIR%*' -DestinationPath '%BACKUP_DIR%\%BACKUP_NAME%\files.zip' -Force -CompressionLevel Optimal"
+powershell -command "Compress-Archive -Path '%SCRIPT_DIR%..\..\*' -DestinationPath '%BACKUP_DIR%\%BACKUP_NAME%\files.zip' -Force -CompressionLevel Optimal"
 
 if %ERRORLEVEL% EQU 0 (
     echo %GREEN%[OK]%NC% File applicazione salvati

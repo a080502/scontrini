@@ -22,7 +22,8 @@ print_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
 
 # Configurazione
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_FILE="$SCRIPT_DIR/maintenance.log"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LOG_FILE="$PROJECT_DIR/maintenance.log"
 
 # Logging
 log_message() {
@@ -31,11 +32,11 @@ log_message() {
 
 # Carica configurazione database
 load_db_config() {
-    if [ -f "$SCRIPT_DIR/config.php" ]; then
-        DB_HOST=$(grep "define('DB_HOST'" "$SCRIPT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
-        DB_NAME=$(grep "define('DB_NAME'" "$SCRIPT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
-        DB_USER=$(grep "define('DB_USER'" "$SCRIPT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
-        DB_PASS=$(grep "define('DB_PASS'" "$SCRIPT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
+    if [ -f "$PROJECT_DIR/config.php" ]; then
+        DB_HOST=$(grep "define('DB_HOST'" "$PROJECT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
+        DB_NAME=$(grep "define('DB_NAME'" "$PROJECT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
+        DB_USER=$(grep "define('DB_USER'" "$PROJECT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
+        DB_PASS=$(grep "define('DB_PASS'" "$PROJECT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
         
         print_success "Configurazione database caricata"
         log_message "Database config loaded"
@@ -70,7 +71,7 @@ system_check() {
     done
     
     # Spazio disco
-    DISK_USAGE=$(df "$SCRIPT_DIR" | awk 'NR==2 {print $5}' | sed 's/%//')
+    DISK_USAGE=$(df "$PROJECT_DIR" | awk 'NR==2 {print $5}' | sed 's/%//')
     print_info "Utilizzo disco: ${DISK_USAGE}%"
     
     if [ "$DISK_USAGE" -gt 90 ]; then
@@ -80,7 +81,7 @@ system_check() {
     fi
     
     # Permessi file
-    if [ -r "$SCRIPT_DIR/config.php" ] && [ -r "$SCRIPT_DIR/index.php" ]; then
+    if [ -r "$PROJECT_DIR/config.php" ] && [ -r "$PROJECT_DIR/index.php" ]; then
         print_success "Permessi file: OK"
     else
         print_warning "Problemi permessi file"
@@ -157,9 +158,9 @@ cleanup_files() {
     print_info "🧹 Pulizia file..."
     
     # Elimina file temporanei
-    find "$SCRIPT_DIR" -name "*.tmp" -delete 2>/dev/null || true
-    find "$SCRIPT_DIR" -name "*.bak" -delete 2>/dev/null || true
-    find "$SCRIPT_DIR" -name "*~" -delete 2>/dev/null || true
+    find "$PROJECT_DIR" -name "*.tmp" -delete 2>/dev/null || true
+    find "$PROJECT_DIR" -name "*.bak" -delete 2>/dev/null || true
+    find "$PROJECT_DIR" -name "*~" -delete 2>/dev/null || true
     
     # Ruota log se troppo grande
     if [ -f "$LOG_FILE" ] && [ $(stat -c%s "$LOG_FILE" 2>/dev/null || echo "0") -gt 1048576 ]; then

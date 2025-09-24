@@ -27,11 +27,11 @@ DATE=$(date +"%Y%m%d_%H%M%S")
 BACKUP_NAME="scontrini_backup_$DATE"
 
 # Carica configurazione se esiste
-if [ -f "$SCRIPT_DIR/config.php" ]; then
-    DB_HOST=$(grep "define('DB_HOST'" "$SCRIPT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
-    DB_NAME=$(grep "define('DB_NAME'" "$SCRIPT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
-    DB_USER=$(grep "define('DB_USER'" "$SCRIPT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
-    DB_PASS=$(grep "define('DB_PASS'" "$SCRIPT_DIR/config.php" | sed "s/.*'\(.*\)'.*/\1/")
+if [ -f "$SCRIPT_DIR/../../config.php" ]; then
+    DB_HOST=$(grep "define('DB_HOST'" "$SCRIPT_DIR/../../config.php" | sed "s/.*'\(.*\)'.*/\1/")
+    DB_NAME=$(grep "define('DB_NAME'" "$SCRIPT_DIR/../../config.php" | sed "s/.*'\(.*\)'.*/\1/")
+    DB_USER=$(grep "define('DB_USER'" "$SCRIPT_DIR/../../config.php" | sed "s/.*'\(.*\)'.*/\1/")
+    DB_PASS=$(grep "define('DB_PASS'" "$SCRIPT_DIR/../../config.php" | sed "s/.*'\(.*\)'.*/\1/")
     
     print_info "Configurazione database caricata da config.php"
 else
@@ -55,7 +55,7 @@ tar -czf "$BACKUP_DIR/$BACKUP_NAME/files.tar.gz" \
     --exclude=".git" \
     --exclude="*.log" \
     --exclude="setup_completed.lock" \
-    -C "$SCRIPT_DIR" .
+    -C "$SCRIPT_DIR/../.." .
 
 print_success "File applicazione salvati in files.tar.gz"
 
@@ -94,8 +94,8 @@ Backup Gestione Scontrini PHP
 =============================
 
 Data backup: $(date)
-Versione: $(git -C "$SCRIPT_DIR" describe --tags 2>/dev/null || echo "Non disponibile")
-Commit: $(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null || echo "Non disponibile")
+Versione: $(git -C "$SCRIPT_DIR/../.." describe --tags 2>/dev/null || echo "Non disponibile")
+Commit: $(git -C "$SCRIPT_DIR/../.." rev-parse HEAD 2>/dev/null || echo "Non disponibile")
 
 Database:
 - Host: $DB_HOST
