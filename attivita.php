@@ -3,20 +3,43 @@ require_once 'includes/bootstrap.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
+$current_user = Auth::getCurrentUser();
 
-// Recupera tutte le attività recenti
+// Prepara filtri per le query basati sul ruolo dell'utente
+$role_filter = "";
+$params = [];
+
+if (Auth::isAdmin()) {
+    // Admin vede tutto - nessun filtro aggiuntivo
+    $role_filter = "";
+} elseif (Auth::isResponsabile()) {
+    // Responsabile vede solo la sua filiale
+    $role_filter = " AND s.filiale_id = ?";
+    $params[] = $current_user['filiale_id'];
+} else {
+    // Utente normale vede solo i propri scontrini
+    $role_filter = " AND s.utente_id = ?";
+    $params[] = $current_user['id'];
+}
+
+// Recupera tutte le attività recenti con filtro per ruolo
 $attivita = $db->fetchAll("
     SELECT 
         s.*,
+        u.nome as utente_nome,
+        f.nome as filiale_nome,
         DATE(s.created_at) as data_creazione,
         s.data_incasso,
         s.data_versamento,
         s.data_archiviazione
     FROM scontrini s
-    WHERE s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    LEFT JOIN utenti u ON s.utente_id = u.id
+    LEFT JOIN filiali f ON s.filiale_id = f.id
+    WHERE (s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
        OR s.data_incasso >= DATE_SUB(NOW(), INTERVAL 30 DAY)
        OR s.data_versamento >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-       OR s.data_archiviazione >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+       OR s.data_archiviazione >= DATE_SUB(NOW(), INTERVAL 30 DAY))
+       $role_filter
     ORDER BY 
         GREATEST(
             COALESCE(s.created_at, '1970-01-01'),
@@ -25,17 +48,32 @@ $attivita = $db->fetchAll("
             COALESCE(s.data_archiviazione, '1970-01-01')
         ) DESC
     LIMIT 50
-");
+", $params);
 
 // Crea un array di eventi per il timeline
 $eventi = [];
 foreach ($attivita as $scontrino) {
+    // Prepara info aggiuntive per admin/responsabili
+    $user_info = "";
+    if (Auth::isAdmin() || Auth::isResponsabile()) {
+        $user_parts = [];
+        if ($scontrino['utente_nome']) {
+            $user_parts[] = "di " . $scontrino['utente_nome'];
+        }
+        if (Auth::isAdmin() && $scontrino['filiale_nome']) {
+            $user_parts[] = "(" . $scontrino['filiale_nome'] . ")";
+        }
+        if (!empty($user_parts)) {
+            $user_info = " " . implode(" ", $user_parts);
+        }
+    }
+    
     // Creazione
     $eventi[] = [
         'data' => $scontrino['created_at'],
         'tipo' => 'creazione',
         'scontrino' => $scontrino,
-        'descrizione' => "Scontrino '{$scontrino['nome']}' creato"
+        'descrizione' => "Scontrino '{$scontrino['nome']}' creato$user_info"
     ];
     
     // Incasso
@@ -44,7 +82,7 @@ foreach ($attivita as $scontrino) {
             'data' => $scontrino['data_incasso'],
             'tipo' => 'incasso',
             'scontrino' => $scontrino,
-            'descrizione' => "Scontrino '{$scontrino['nome']}' incassato"
+            'descrizione' => "Scontrino '{$scontrino['nome']}' incassato$user_info"
         ];
     }
     
@@ -54,7 +92,7 @@ foreach ($attivita as $scontrino) {
             'data' => $scontrino['data_versamento'],
             'tipo' => 'versamento',
             'scontrino' => $scontrino,
-            'descrizione' => "Scontrino '{$scontrino['nome']}' versato"
+            'descrizione' => "Scontrino '{$scontrino['nome']}' versato$user_info"
         ];
     }
     
@@ -64,7 +102,7 @@ foreach ($attivita as $scontrino) {
             'data' => $scontrino['data_archiviazione'],
             'tipo' => 'archiviazione',
             'scontrino' => $scontrino,
-            'descrizione' => "Scontrino '{$scontrino['nome']}' archiviato"
+            'descrizione' => "Scontrino '{$scontrino['nome']}' archiviato$user_info"
         ];
     }
 }
@@ -79,6 +117,13 @@ $eventi = array_slice($eventi, 0, 30);
 
 $page_title = 'Attività Recenti - ' . SITE_NAME;
 $page_header = 'Attività Recenti (Ultimi 30 giorni)';
+if (Auth::isAdmin()) {
+    $page_header .= ' - Tutte le filiali';
+} elseif (Auth::isResponsabile()) {
+    $page_header .= ' - ' . htmlspecialchars($current_user['filiale_nome'] ?? 'Tua filiale');
+} else {
+    $page_header .= ' - I tuoi scontrini';
+}
 
 ob_start();
 ?>
