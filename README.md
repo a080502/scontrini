@@ -6,11 +6,21 @@ Applicazione web per la gestione degli scontrini fiscali convertita da Python Fl
 
 - **Dashboard completa** con statistiche e riepilogo finanziario
 - **Gestione scontrini** con stati: da incassare, incassato, versato, archiviato
+- **Raggruppamento per nome** - Gli scontrini nella lista sono raggruppati per nome con totali per ogni gruppo
 - **Sistema di autenticazione** con gestione utenti
 - **Archivio** per scontrini completati
 - **Timeline attività** per monitorare le operazioni
 - **Interfaccia responsive** identica al progetto originale
 - **Autocomplete** per nomi scontrini frequenti
+
+### Nuove Funzionalità (v2.1)
+
+- **Lista scontrini raggruppata**: Gli scontrini sono ora organizzati per nome con:
+  - Ordinamento alfabetico per nome
+  - All'interno di ogni gruppo, ordinamento per data (più recenti primi)
+  - Totali automatici per ogni gruppo (importo lordo, da versare, stato incassi/versamenti)
+  - Design migliorato con header colorato per ogni gruppo
+  - Visualizzazione ottimizzata per desktop e mobile
 
 ## Requisiti
 
@@ -105,6 +115,30 @@ Nel file `httpd.conf` di XAMPP, assicurati che `AllowOverride All` sia abilitato
 ├── annulla_versamento.php     # Annullamento versamento
 └── logout.php                 # Logout utente
 ```
+
+## Interfaccia Utente
+
+### Lista Scontrini Raggruppata
+
+La pagina `lista.php` presenta una visualizzazione innovativa degli scontrini:
+
+- **Raggruppamento per nome**: Tutti gli scontrini della stessa persona sono raggruppati insieme
+- **Ordinamento intelligente**: 
+  - Gruppi ordinati alfabeticamente per nome
+  - All'interno di ogni gruppo, scontrini ordinati per data (più recenti primi)
+- **Totali per gruppo**: Ogni sezione mostra:
+  - Totale importo lordo del gruppo
+  - Totale da versare del gruppo  
+  - Statistiche incassi/versamenti (es. "3/5 incassati - 1/5 versati")
+- **Design professionale**: Header colorato per ogni gruppo con gradiente blu
+- **Responsive**: Ottimizzata per desktop, tablet e mobile
+
+### Dashboard e Statistiche
+
+La dashboard principale fornisce una panoramica completa con:
+- Statistiche finanziarie in tempo reale
+- Riepilogo per stato (da incassare, incassati, versati)
+- Collegamenti rapidi alle funzioni principali
 
 ## Script di Automazione
 
