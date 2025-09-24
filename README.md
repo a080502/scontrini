@@ -148,19 +148,21 @@ chmod +x scripts/linux/*.sh
 # Installazione automatica
 scripts\windows\install.bat
 
-# Backup database (versione Batch tradizionale)
-scripts\windows\backup.bat
-
-# Backup database (versione PowerShell - più robusta)
+# Backup database (RACCOMANDATO - PowerShell)
 scripts\windows\backup_powershell.bat
 # oppure direttamente:
 powershell -ExecutionPolicy Bypass -File scripts\windows\backup.ps1
+
+# Backup database (alternativa Batch)
+scripts\windows\backup.bat
 
 # Manutenzione
 scripts\windows\maintenance.bat
 ```
 
-**Nota per Windows:** Se riscontri problemi con `backup.bat`, usa la versione PowerShell che è più robusta e gestisce meglio i nomi di database con caratteri speciali.
+**Raccomandazioni Windows:**
+- 🟢 **PowerShell** (`backup_powershell.bat` o `backup.ps1`): **RACCOMANDATO** - più robusto e affidabile
+- 🟡 **Batch** (`backup.bat`): Alternativa per sistemi senza PowerShell o con restrizioni
 
 Per maggiori dettagli consulta: [scripts/README.md](scripts/README.md)
 
