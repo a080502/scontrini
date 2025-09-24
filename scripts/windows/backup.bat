@@ -77,14 +77,37 @@ if not defined MYSQLDUMP_PATH (
     goto :skip_database
 )
 
-REM Backup completo database (versione compatibile)
+REM Backup completo database (versione alternativa con file SQL)
 echo %BLUE%[INFO]%NC% Creazione backup database...
 
-REM Usa forma più semplice del comando (hardcoded per test)
+REM Crea file SQL temporaneo per evitare problemi con nome database
+echo SHOW DATABASES; > "%BACKUP_DIR%\%BACKUP_NAME%\temp_dump.sql"
+
+REM Prova approccio 1: Variabile separata
+set "TARGET_DB=scontrini_db"
 if "%DB_PASS%"=="" (
-    "%MYSQLDUMP_PATH%" -hlocalhost -uroot scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
+    "%MYSQLDUMP_PATH%" -hlocalhost -uroot %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
 ) else (
-    "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
+    "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
+)
+
+REM Se fallisce, prova approccio 2: File batch separato
+if %ERRORLEVEL% NEQ 0 (
+    echo %YELLOW%[WARNING]%NC% Primo tentativo fallito, provo metodo alternativo...
+    
+    REM Crea mini script per mysqldump
+    echo @echo off > "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat"
+    if "%DB_PASS%"=="" (
+        echo "%MYSQLDUMP_PATH%" -hlocalhost -uroot scontrini_db >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat"
+    ) else (
+        echo "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% scontrini_db >> "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat"
+    )
+    
+    REM Esegui script separato
+    call "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat" > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
+    
+    REM Pulizia file temporaneo
+    del "%BACKUP_DIR%\%BACKUP_NAME%\dump_cmd.bat" 2>nul
 )
 
 if %ERRORLEVEL% EQU 0 (
@@ -103,16 +126,16 @@ if %ERRORLEVEL% EQU 0 (
     
     REM Backup struttura database (solo tabelle)
     if "%DB_PASS%"=="" (
-        "%MYSQLDUMP_PATH%" -hlocalhost -uroot --no-data scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
+        "%MYSQLDUMP_PATH%" -hlocalhost -uroot --no-data %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
     ) else (
-        "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% --no-data scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
+        "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% --no-data %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
     )
     
     REM Backup dati database (solo dati)
     if "%DB_PASS%"=="" (
-        "%MYSQLDUMP_PATH%" -hlocalhost -uroot --no-create-info scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
+        "%MYSQLDUMP_PATH%" -hlocalhost -uroot --no-create-info %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
     ) else (
-        "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% --no-create-info scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
+        "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% --no-create-info %TARGET_DB% > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
     )
     
     echo %GREEN%[OK]%NC% Backup database completo
