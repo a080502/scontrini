@@ -67,7 +67,7 @@ class Utils {
     /**
      * Gestisce i filtri avanzati per le tabelle in base al ruolo utente
      */
-    public static function buildAdvancedFilters($db, $current_user, $filters = []) {
+    public static function buildAdvancedFilters($db, $current_user, $filters = [], $table_prefix = 's.') {
         $where_conditions = [];
         $params = [];
         $available_filters = [];
@@ -78,29 +78,29 @@ class Utils {
             $available_filters = ['filiale', 'nome', 'utente'];
         } elseif (Auth::isResponsabile()) {
             // Responsabile vede solo la sua filiale - può filtrare per nome e utente
-            $where_conditions[] = "s.filiale_id = ?";
+            $where_conditions[] = $table_prefix . "filiale_id = ?";
             $params[] = $current_user['filiale_id'];
             $available_filters = ['nome', 'utente'];
         } else {
             // Utente normale vede solo i suoi - può filtrare per nome
-            $where_conditions[] = "s.utente_id = ?";
+            $where_conditions[] = $table_prefix . "utente_id = ?";
             $params[] = $current_user['id'];
             $available_filters = ['nome'];
         }
         
         // Applica filtri aggiuntivi
         if (!empty($filters['filiale_id']) && in_array('filiale', $available_filters)) {
-            $where_conditions[] = "s.filiale_id = ?";
+            $where_conditions[] = $table_prefix . "filiale_id = ?";
             $params[] = $filters['filiale_id'];
         }
         
         if (!empty($filters['utente_id']) && in_array('utente', $available_filters)) {
-            $where_conditions[] = "s.utente_id = ?";
+            $where_conditions[] = $table_prefix . "utente_id = ?";
             $params[] = $filters['utente_id'];
         }
         
         if (!empty($filters['nome_filter']) && in_array('nome', $available_filters)) {
-            $where_conditions[] = "s.nome LIKE ?";
+            $where_conditions[] = $table_prefix . "nome LIKE ?";
             $params[] = "%{$filters['nome_filter']}%";
         }
         

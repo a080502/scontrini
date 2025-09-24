@@ -19,12 +19,17 @@ $query_params = [];
 $query_params_with_prefix = []; // Per query con JOIN
 
 // Applica filtri avanzati usando la nuova funzione
-$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters);
+$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters, ''); // Nessun prefisso per query semplici
+$advanced_filter_data_with_prefix = Utils::buildAdvancedFilters($db, $current_user, $filters, 's.'); // Prefisso per JOIN
+
 if (!empty($advanced_filter_data['where_conditions'])) {
     $where_clause = " AND " . implode(" AND ", $advanced_filter_data['where_conditions']);
-    $where_clause_with_prefix = " AND " . implode(" AND ", $advanced_filter_data['where_conditions']);
     $query_params = $advanced_filter_data['params'];
-    $query_params_with_prefix = $advanced_filter_data['params'];
+}
+
+if (!empty($advanced_filter_data_with_prefix['where_conditions'])) {
+    $where_clause_with_prefix = " AND " . implode(" AND ", $advanced_filter_data_with_prefix['where_conditions']);
+    $query_params_with_prefix = $advanced_filter_data_with_prefix['params'];
 }
 
 // Statistiche scontrini con filtro per ruolo

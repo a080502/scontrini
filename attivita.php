@@ -13,7 +13,7 @@ $filters = [
 ];
 
 // Applica filtri avanzati usando la nuova funzione
-$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters);
+$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters, 's.');
 $role_filter = "";
 $params = [];
 if (!empty($advanced_filter_data['where_conditions'])) {

@@ -21,7 +21,7 @@ $where_conditions = ["s.archiviato = 1"];
 $params = [];
 
 // Applica filtri avanzati usando la nuova funzione
-$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters);
+$advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters, 's.');
 // Modifica le condizioni per adattarle all'archivio (archiviato = 1)
 $where_conditions[0] = "s.archiviato = 1";
 $where_conditions = array_merge($where_conditions, $advanced_filter_data['where_conditions']);
