@@ -70,15 +70,17 @@ ob_start();
     
     <div class="form-group">
         <label for="lordo"><i class="fas fa-euro-sign"></i> Importo Lordo *</label>
-        <input type="number" id="lordo" name="lordo" step="0.01" min="0.01" required
+        <input type="text" id="lordo" name="lordo" required
+               pattern="[0-9]+([,\.][0-9]{1,2})?"
                value="<?php echo htmlspecialchars($lordo ?? ''); ?>"
                placeholder="0,00">
-        <small class="text-muted">Importo totale dello scontrino</small>
+        <small class="text-muted">Importo totale dello scontrino (es: 123,45)</small>
     </div>
     
     <div class="form-group">
         <label for="da_versare"><i class="fas fa-hand-holding-usd"></i> Importo da Versare</label>
-        <input type="number" id="da_versare" name="da_versare" step="0.01" min="0"
+        <input type="text" id="da_versare" name="da_versare"
+               pattern="[0-9]*([,\.][0-9]{1,2})?"
                value="<?php echo htmlspecialchars($da_versare ?? ''); ?>"
                placeholder="0,00">
         <small class="text-muted">Importo che deve essere versato (lascia vuoto se uguale all'importo lordo)</small>

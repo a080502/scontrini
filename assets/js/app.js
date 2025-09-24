@@ -102,22 +102,27 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    // Formattazione automatica importi - FIX: non cancellare valore
+    // Formattazione automatica importi - FIX COMPLETO
     const lordo = document.getElementById('lordo');
     const daVersare = document.getElementById('da_versare');
     
     if (lordo) {
         lordo.addEventListener('blur', function() {
             let value = this.value.replace(',', '.');
-            if (!isNaN(value) && value !== '' && value !== '0') {
-                // Formatta solo se c'è un valore valido
+            // Solo se c'è un numero valido maggiore di 0
+            if (!isNaN(value) && value !== '' && parseFloat(value) > 0) {
+                // Formatta il numero
                 this.value = parseFloat(value).toFixed(2).replace('.', ',');
                 
                 // Auto-riempi da_versare se è vuoto
                 if (daVersare && daVersare.value === '') {
                     daVersare.value = this.value;
                 }
+            } else if (value !== '') {
+                // Se c'è testo ma non è un numero valido, avvisa ma non cancellare
+                console.log('Valore non valido inserito:', value);
             }
+            // NON FARE NULLA se il campo è vuoto - lascia che l'utente inserisca il valore
         });
         
         // Suggerimento per auto-riempimento
@@ -132,9 +137,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (daVersare) {
         daVersare.addEventListener('blur', function() {
             let value = this.value.replace(',', '.');
-            if (!isNaN(value) && value !== '' && value !== '0') {
+            // Solo se c'è un numero valido (può essere 0 per da_versare)
+            if (!isNaN(value) && value !== '' && parseFloat(value) >= 0) {
                 this.value = parseFloat(value).toFixed(2).replace('.', ',');
+            } else if (value !== '') {
+                // Se c'è testo ma non è un numero valido, avvisa ma non cancellare
+                console.log('Valore non valido inserito:', value);
             }
+            // NON FARE NULLA se il campo è vuoto
         });
     }
 });
