@@ -77,14 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Recupera filiali visibili
 if (Auth::isAdmin()) {
-    $filiali = $db->query("
+    $filiali = $db->fetchAll("
         SELECT f.*, u.nome as responsabile_nome, u.username as responsabile_username
         FROM filiali f
         LEFT JOIN utenti u ON f.responsabile_id = u.id
         ORDER BY f.nome
     ");
 } else {
-    $filiali = $db->query("
+    $filiali = $db->fetchAll("
         SELECT f.*, u.nome as responsabile_nome, u.username as responsabile_username
         FROM filiali f
         LEFT JOIN utenti u ON f.responsabile_id = u.id
@@ -96,7 +96,7 @@ if (Auth::isAdmin()) {
 // Recupera utenti responsabili per il dropdown (solo admin)
 $responsabili = [];
 if (Auth::isAdmin()) {
-    $responsabili = $db->query("
+    $responsabili = $db->fetchAll("
         SELECT id, nome, username 
         FROM utenti 
         WHERE ruolo IN ('admin', 'responsabile') 

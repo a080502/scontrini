@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Recupera utenti visibili
 if (Auth::isAdmin()) {
-    $utenti = $db->query("
+    $utenti = $db->fetchAll("
         SELECT u.*, f.nome as filiale_nome,
                (SELECT COUNT(*) FROM scontrini s WHERE s.utente_id = u.id) as scontrini_count
         FROM utenti u
@@ -122,7 +122,7 @@ if (Auth::isAdmin()) {
     ");
 } else {
     // Responsabili vedono solo utenti della loro filiale
-    $utenti = $db->query("
+    $utenti = $db->fetchAll("
         SELECT u.*, f.nome as filiale_nome,
                (SELECT COUNT(*) FROM scontrini s WHERE s.utente_id = u.id) as scontrini_count
         FROM utenti u
@@ -135,7 +135,7 @@ if (Auth::isAdmin()) {
 // Recupera filiali per i dropdown (solo admin)
 $filiali = [];
 if (Auth::isAdmin()) {
-    $filiali = $db->query("SELECT id, nome FROM filiali WHERE attiva = 1 ORDER BY nome");
+    $filiali = $db->fetchAll("SELECT id, nome FROM filiali WHERE attiva = 1 ORDER BY nome");
 }
 
 $page_title = 'Gestione Utenti';

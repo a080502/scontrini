@@ -83,13 +83,13 @@ class Auth {
         
         if (self::isAdmin()) {
             // Admin vede tutte le filiali
-            return $db->query("SELECT * FROM filiali WHERE attiva = 1 ORDER BY nome");
+            return $db->fetchAll("SELECT * FROM filiali WHERE attiva = 1 ORDER BY nome");
         } elseif (self::isResponsabile()) {
             // Responsabile vede solo la sua filiale
-            return $db->query("SELECT * FROM filiali WHERE id = ? AND attiva = 1", [$_SESSION['filiale_id']]);
+            return $db->fetchAll("SELECT * FROM filiali WHERE id = ? AND attiva = 1", [$_SESSION['filiale_id']]);
         } else {
             // Utente normale vede solo la sua filiale
-            return $db->query("SELECT * FROM filiali WHERE id = ? AND attiva = 1", [$_SESSION['filiale_id']]);
+            return $db->fetchAll("SELECT * FROM filiali WHERE id = ? AND attiva = 1", [$_SESSION['filiale_id']]);
         }
     }
     

@@ -55,7 +55,7 @@ switch ($filtro) {
 $where_clause = implode(" AND ", $where_conditions);
 
 // Recupera scontrini con informazioni utente e filiale
-$scontrini = $db->query("
+$scontrini = $db->fetchAll("
     SELECT s.*, 
            u.nome as utente_nome, u.username as utente_username,
            f.nome as filiale_nome
@@ -98,7 +98,7 @@ $anni_where = array_filter($anni_where, function($condition) {
 $anni_clause = implode(" AND ", $anni_where);
 $anni_params = array_slice($params, 0, count($anni_where) - count($where_conditions) + count($anni_where));
 
-$anni = $db->query("
+$anni = $db->fetchAll("
     SELECT DISTINCT YEAR(s.data_scontrino) as anno 
     FROM scontrini s
     LEFT JOIN utenti u ON s.utente_id = u.id

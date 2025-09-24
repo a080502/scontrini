@@ -60,12 +60,6 @@ class Database {
         try {
             $stmt = $this->connection->prepare($sql);
             $stmt->execute($params);
-            
-            // Se è una SELECT, restituisce i risultati
-            if (stripos(trim($sql), 'SELECT') === 0) {
-                return $stmt->fetchAll();
-            }
-            
             return $stmt;
         } catch (PDOException $e) {
             throw new Exception("Errore query database: " . $e->getMessage());
