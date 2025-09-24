@@ -79,10 +79,12 @@ if not defined MYSQLDUMP_PATH (
 
 REM Backup completo database (versione compatibile)
 echo %BLUE%[INFO]%NC% Creazione backup database...
+
+REM Usa forma più semplice del comando (hardcoded per test)
 if "%DB_PASS%"=="" (
-    "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% "%DB_NAME%" > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
+    "%MYSQLDUMP_PATH%" -hlocalhost -uroot scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
 ) else (
-    "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% "%DB_NAME%" > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
+    "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database.sql" 2>"%BACKUP_DIR%\%BACKUP_NAME%\backup_error.log"
 )
 
 if %ERRORLEVEL% EQU 0 (
@@ -101,16 +103,16 @@ if %ERRORLEVEL% EQU 0 (
     
     REM Backup struttura database (solo tabelle)
     if "%DB_PASS%"=="" (
-        "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% --no-data "%DB_NAME%" > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
+        "%MYSQLDUMP_PATH%" -hlocalhost -uroot --no-data scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
     ) else (
-        "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% --no-data "%DB_NAME%" > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
+        "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% --no-data scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database_structure.sql"
     )
     
     REM Backup dati database (solo dati)
     if "%DB_PASS%"=="" (
-        "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% --no-create-info "%DB_NAME%" > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
+        "%MYSQLDUMP_PATH%" -hlocalhost -uroot --no-create-info scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
     ) else (
-        "%MYSQLDUMP_PATH%" -h%DB_HOST% -u%DB_USER% -p%DB_PASS% --no-create-info "%DB_NAME%" > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
+        "%MYSQLDUMP_PATH%" -hlocalhost -uroot -p%DB_PASS% --no-create-info scontrini_db > "%BACKUP_DIR%\%BACKUP_NAME%\database_data.sql"
     )
     
     echo %GREEN%[OK]%NC% Backup database completo
