@@ -83,7 +83,13 @@ function setupAutocomplete(inputElement) {
         fetch(url)
             .then(response => {
                 console.log('Response status:', response.status);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    // Per errori 500, proviamo a leggere il contenuto per vedere l'errore PHP
+                    return response.text().then(text => {
+                        console.error('Errore 500 - Contenuto risposta:', text);
+                        throw new Error(`HTTP error! status: ${response.status} - Content: ${text.substring(0, 200)}...`);
+                    });
+                }
                 return response.json();
             })
             .then(data => {
