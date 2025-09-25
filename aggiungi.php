@@ -1,7 +1,5 @@
 <?php
 require_once 'includes/bootstrap.php';
-require_once 'config.php';
-define('APP_NAME', 'NomeApp');
 Auth::requireLogin();
 
 // Controllo automatico per dispositivi mobili (solo se non è forzata la versione desktop)
