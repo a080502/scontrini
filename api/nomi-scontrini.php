@@ -1,12 +1,41 @@
 <?php
-require_once '../includes/bootstrap.php';
+// Cattura tutti gli errori e previeni output HTML
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
 
+// Buffer di output per catturare eventuali errori
+ob_start();
+
+try {
+    require_once '../includes/bootstrap.php';
+} catch (Exception $e) {
+    // Pulisci buffer e restituisci errore JSON
+    ob_clean();
+    header('Content-Type: application/json');
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Errore caricamento bootstrap: ' . $e->getMessage()]);
+    exit;
+}
+
+// Pulisci eventuali output non desiderati e imposta header JSON
+ob_clean();
 header('Content-Type: application/json');
+
+// Debug: verifica se le classi sono caricate
+if (!class_exists('Auth')) {
+    echo json_encode(['success' => false, 'error' => 'Classe Auth non trovata']);
+    exit;
+}
+
+if (!class_exists('Database')) {
+    echo json_encode(['success' => false, 'error' => 'Classe Database non trovata']);
+    exit;
+}
 
 // Verifica autenticazione
 if (!Auth::isLoggedIn()) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Non autorizzato']);
+    echo json_encode(['success' => false, 'error' => 'Non autorizzato', 'debug' => 'Utente non autenticato']);
     exit;
 }
 
@@ -108,10 +137,34 @@ try {
     ]);
     
 } catch (Exception $e) {
+    // Assicurati che non ci sia output HTML prima dell'errore JSON
+    ob_clean();
+    header('Content-Type: application/json');
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Errore server: ' . $e->getMessage()
+        'error' => 'Errore server: ' . $e->getMessage(),
+        'debug' => [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]
+    ]);
+} catch (Error $e) {
+    // Cattura anche errori fatali PHP
+    ob_clean();
+    header('Content-Type: application/json');
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Errore PHP: ' . $e->getMessage(),
+        'debug' => [
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]
     ]);
 }
+
+// Assicurati che non ci siano output aggiuntivi
+exit;
 ?>
