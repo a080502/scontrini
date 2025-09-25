@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Autocomplete</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+    .test-container {
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        position: relative;
+    }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2>Test Autocomplete Dinamico</h2>
+        <p>Testa l'autocomplete digitando nel campo nome (serve una sessione attiva)</p>
+        
+        <form>
+            <div class="form-group">
+                <label for="nome">Nome Scontrino:</label>
+                <div class="autocomplete">
+                    <input type="text" id="nome" name="nome" placeholder="Inizia a scrivere...">
+                </div>
+            </div>
+        </form>
+        
+        <div id="debug"></div>
+    </div>
+
+    <script src="assets/js/app.js"></script>
+    <script>
+        // Debug info
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugDiv = document.getElementById('debug');
+            debugDiv.innerHTML = '<h3>Debug Info:</h3><p>JavaScript caricato, verifica console per messaggi</p>';
+            
+            // Test API
+            fetch('/api/nomi-scontrini.php')
+                .then(response => response.json())
+                .then(data => {
+                    debugDiv.innerHTML += '<p>API Response: ' + JSON.stringify(data) + '</p>';
+                })
+                .catch(error => {
+                    debugDiv.innerHTML += '<p>API Error: ' + error + '</p>';
+                });
+        });
+    </script>
+</body>
+</html>
