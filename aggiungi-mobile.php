@@ -4,6 +4,11 @@ require_once 'config.php';
 define('APP_NAME', 'NomeApp');
 Auth::requireLogin();
 
+// Redirect alla versione desktop se non è un dispositivo mobile (e non forzato)
+if (!Utils::isMobileDevice() && !isset($_GET['force_mobile'])) {
+    Utils::redirect('aggiungi.php');
+}
+
 $db = Database::getInstance();
 $current_user = Auth::getCurrentUser();
 $error = '';
@@ -355,6 +360,13 @@ if ($_POST) {
         </div>
         <?php endif; ?>
         
+        <!-- Link per versione desktop -->
+        <div style="text-align: center; margin-bottom: 15px;">
+            <a href="aggiungi.php?force_desktop=1" style="color: #6c757d; font-size: 14px; text-decoration: none;">
+                🖥️ Versione Desktop
+            </a>
+        </div>
+        
         <form method="POST" class="mobile-form">
             <?php if ((Auth::isResponsabile() || Auth::isAdmin()) && !empty($available_users)): ?>
             <div class="user-selector">
@@ -446,6 +458,13 @@ if ($_POST) {
                 </a>
             </div>
         </form>
+        
+        <!-- Link per passare alla versione desktop -->
+        <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+            <a href="aggiungi.php?force_desktop=1" style="color: #6c757d; font-size: 14px; text-decoration: none;">
+                💻 Passa alla versione desktop
+            </a>
+        </div>
     </div>
 
     <script>

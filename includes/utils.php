@@ -65,6 +65,98 @@ class Utils {
     }
     
     /**
+     * Rileva se il dispositivo corrente è mobile
+     */
+    public static function isMobileDevice() {
+        // Controlla se è già stato salvato in sessione
+        if (isset($_SESSION['is_mobile_device'])) {
+            return $_SESSION['is_mobile_device'];
+        }
+        
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        
+        // Lista di pattern per rilevare dispositivi mobili
+        $mobile_agents = [
+            'Mobile', 'Android', 'iPhone', 'iPad', 'iPod', 'BlackBerry', 
+            'Windows Phone', 'Opera Mini', 'IEMobile', 'webOS', 'Kindle',
+            'Silk', 'Fennec', 'Maemo', 'Tablet', 'Playbook', 'BB10'
+        ];
+        
+        $isMobile = false;
+        foreach ($mobile_agents as $agent) {
+            if (stripos($user_agent, $agent) !== false) {
+                $isMobile = true;
+                break;
+            }
+        }
+        
+        // Controllo aggiuntivo per larghezza schermo via JavaScript (se disponibile)
+        if (isset($_COOKIE['screen_width'])) {
+            $screenWidth = (int)$_COOKIE['screen_width'];
+            if ($screenWidth > 0 && $screenWidth <= 768) {
+                $isMobile = true;
+            }
+        }
+        
+        // Controllo per dispositivi touch
+        if (isset($_COOKIE['is_touch_device']) && $_COOKIE['is_touch_device'] === '1') {
+            if (isset($_COOKIE['screen_width']) && (int)$_COOKIE['screen_width'] <= 1024) {
+                $isMobile = true;
+            }
+        }
+        
+        // Salva il risultato in sessione
+        $_SESSION['is_mobile_device'] = $isMobile;
+        
+        return $isMobile;
+    }
+    
+    /**
+     * Redirect intelligente che sceglie automaticamente la versione mobile o desktop
+     */
+    public static function smartRedirect($desktop_page, $mobile_page = null) {
+        // Auto-detect per pagine con versione mobile disponibile
+        if (!$mobile_page) {
+            if ($desktop_page === 'aggiungi.php') {
+                $mobile_page = 'aggiungi-mobile.php';
+            }
+        }
+        
+        // Se non esiste una versione mobile specifica, usa quella desktop
+        if (!$mobile_page) {
+            self::redirect($desktop_page);
+            return;
+        }
+        
+        // Se è un dispositivo mobile, vai alla versione mobile
+        if (self::isMobileDevice()) {
+            self::redirect($mobile_page);
+        } else {
+            self::redirect($desktop_page);
+        }
+    }
+    
+    /**
+     * Genera un link intelligente che punta alla versione corretta (mobile/desktop)
+     */
+    public static function smartLink($desktop_page, $mobile_page = null, $text = '', $classes = '') {
+        $target_page = $desktop_page;
+        
+        // Auto-detect per pagine con versione mobile disponibile
+        if (!$mobile_page) {
+            if ($desktop_page === 'aggiungi.php') {
+                $mobile_page = 'aggiungi-mobile.php';
+            }
+        }
+        
+        if ($mobile_page && self::isMobileDevice()) {
+            $target_page = $mobile_page;
+        }
+        
+        return '<a href="' . htmlspecialchars($target_page) . '" class="' . htmlspecialchars($classes) . '">' . htmlspecialchars($text) . '</a>';
+    }
+    
+    /**
      * Gestisce i filtri avanzati per le tabelle in base al ruolo utente
      */
     public static function buildAdvancedFilters($db, $current_user, $filters = [], $table_prefix = 's.') {

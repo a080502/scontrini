@@ -4,6 +4,16 @@ require_once 'config.php';
 define('APP_NAME', 'NomeApp');
 Auth::requireLogin();
 
+// Controllo automatico per dispositivi mobili (solo se non è forzata la versione desktop)
+if (!isset($_GET['force_desktop'])) {
+    Utils::smartRedirect('aggiungi.php', 'aggiungi-mobile.php');
+}
+
+// Redirect automatico alla versione mobile se necessario
+if (Utils::isMobileDevice() && !isset($_GET['force_desktop'])) {
+    Utils::redirect('aggiungi-mobile.php');
+}
+
 $db = Database::getInstance();
 $current_user = Auth::getCurrentUser();
 $error = '';
@@ -177,6 +187,13 @@ ob_start();
         </button>
         <a href="index.php" class="btn btn-secondary btn-lg">
             <i class="fas fa-times"></i> Annulla
+        </a>
+    </div>
+    
+    <!-- Link per passare alla versione mobile -->
+    <div style="text-align: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+        <a href="aggiungi-mobile.php?force_mobile=1" style="color: #6c757d; font-size: 14px; text-decoration: none;">
+            📱 Passa alla versione mobile
         </a>
     </div>
 </form>

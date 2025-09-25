@@ -48,7 +48,7 @@
         <div class="nav-links">
             <a href="index.php"><i class="fas fa-home"></i> Dashboard</a>
             <a href="lista.php"><i class="fas fa-list"></i> Lista Scontrini</a>
-            <a href="aggiungi.php"><i class="fas fa-plus"></i> Aggiungi</a>
+            <?php echo Utils::smartLink('aggiungi.php', null, '<i class="fas fa-plus"></i> Aggiungi', ''); ?>
             <a href="archivio.php"><i class="fas fa-archive"></i> Archivio</a>
             <a href="attivita.php"><i class="fas fa-clock"></i> Attività</a>
             
@@ -112,6 +112,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/app.js"></script>
+    <script src="assets/js/mobile-detection.js"></script>
     
     <?php if (isset($additional_scripts)) echo $additional_scripts; ?>
 </body>
