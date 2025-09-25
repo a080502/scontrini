@@ -187,7 +187,7 @@ ob_start();
 </div>
 
 <div style="text-align: center; margin-top: 30px;">
-    <?php echo Utils::smartLink('aggiungi.php', null, '<i class="fas fa-plus"></i> Aggiungi Nuovo Scontrino', 'btn btn-success btn-lg'); ?>
+    <?php echo Utils::smartLink('aggiungi.php', null, '<i class="fas fa-plus"></i> Aggiungi Nuovo Scontrino', 'btn btn-success btn-lg', true); ?>
     <a href="lista.php" class="btn btn-primary btn-lg">
         <i class="fas fa-list"></i> Visualizza Tutti gli Scontrini
     </a>

@@ -329,7 +329,7 @@ ob_start();
 <?php endif; ?>
 
 <div style="text-align: center; margin-top: 30px;">
-    <?php echo Utils::smartLink('aggiungi.php', null, '<i class="fas fa-plus"></i> Aggiungi Nuovo Scontrino', 'btn btn-success'); ?>
+    <?php echo Utils::smartLink('aggiungi.php', null, '<i class="fas fa-plus"></i> Aggiungi Nuovo Scontrino', 'btn btn-success', true); ?>
 </div>
 
 <?php

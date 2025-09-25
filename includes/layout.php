@@ -48,7 +48,7 @@
         <div class="nav-links">
             <a href="index.php"><i class="fas fa-home"></i> Dashboard</a>
             <a href="lista.php"><i class="fas fa-list"></i> Lista Scontrini</a>
-            <?php echo Utils::smartLink('aggiungi.php', null, '<i class="fas fa-plus"></i> Aggiungi', ''); ?>
+            <?php echo Utils::smartLink('aggiungi.php', null, '<i class="fas fa-plus"></i> Aggiungi', '', true); ?>
             <a href="archivio.php"><i class="fas fa-archive"></i> Archivio</a>
             <a href="attivita.php"><i class="fas fa-clock"></i> Attività</a>
             

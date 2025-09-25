@@ -147,7 +147,7 @@ class Utils {
     /**
      * Genera un link intelligente che punta alla versione corretta (mobile/desktop)
      */
-    public static function smartLink($desktop_page, $mobile_page = null, $text = '', $classes = '') {
+    public static function smartLink($desktop_page, $mobile_page = null, $text = '', $classes = '', $allow_html = false) {
         $target_page = $desktop_page;
         
         // Auto-detect per pagine con versione mobile disponibile
@@ -161,7 +161,8 @@ class Utils {
             $target_page = $mobile_page;
         }
         
-        return '<a href="' . htmlspecialchars($target_page) . '" class="' . htmlspecialchars($classes) . '">' . htmlspecialchars($text) . '</a>';
+        $escaped_text = $allow_html ? $text : htmlspecialchars($text);
+        return '<a href="' . htmlspecialchars($target_page) . '" class="' . htmlspecialchars($classes) . '">' . $escaped_text . '</a>';
     }
     
     /**
