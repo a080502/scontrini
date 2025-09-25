@@ -31,13 +31,19 @@
 <body>
     <div class="test-container">
         <h2>Test Autocomplete Dinamico</h2>
-        <p>Testa l'autocomplete digitando nel campo nome (serve una sessione attiva)</p>
+        <p><strong>Istruzioni:</strong></p>
+        <ul>
+            <li>Clicca sul campo nome per vedere i suggerimenti più popolari</li>
+            <li>Inizia a digitare per cercare (es: "pizza", "caff", "birra")</li>
+            <li>Usa le frecce ↑↓ per navigare e Invio per selezionare</li>
+            <li>Premi Escape per chiudere i suggerimenti</li>
+        </ul>
         
         <form>
             <div class="form-group">
                 <label for="nome">Nome Scontrino:</label>
                 <div class="autocomplete">
-                    <input type="text" id="nome" name="nome" placeholder="Inizia a scrivere...">
+                    <input type="text" id="nome" name="nome" placeholder="Inizia a scrivere o clicca per vedere suggerimenti...">
                 </div>
             </div>
         </form>
@@ -45,22 +51,153 @@
         <div id="debug"></div>
     </div>
 
-    <script src="assets/js/app.js"></script>
     <script>
-        // Debug info
+        // Versione modificata di setupAutocomplete per usare l'API di debug
+        function setupAutocomplete(inputElement) {
+            let currentFocus = -1;
+            let debounceTimeout;
+            
+            // Chiude tutte le liste aperte
+            function closeAllLists(elmnt) {
+                let x = document.getElementsByClassName("autocomplete-items");
+                for (let i = 0; i < x.length; i++) {
+                    if (elmnt != x[i] && elmnt != inputElement) {
+                        x[i].parentNode.removeChild(x[i]);
+                    }
+                }
+            }
+            
+            // Evidenzia l'elemento attivo
+            function addActive(x) {
+                if (!x) return false;
+                removeActive(x);
+                if (currentFocus >= x.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (x.length - 1);
+                if (x[currentFocus]) x[currentFocus].classList.add("autocomplete-active");
+            }
+            
+            function removeActive(x) {
+                for (let i = 0; i < x.length; i++) {
+                    x[i].classList.remove("autocomplete-active");
+                }
+            }
+            
+            // Crea la lista dei suggerimenti
+            function createSuggestionsList(suggestions) {
+                closeAllLists();
+                currentFocus = -1;
+                
+                if (!suggestions || suggestions.length === 0) return;
+                
+                const a = document.createElement("div");
+                a.setAttribute("id", inputElement.id + "autocomplete-list");
+                a.setAttribute("class", "autocomplete-items");
+                inputElement.parentNode.appendChild(a);
+                
+                suggestions.forEach((suggestion, index) => {
+                    const b = document.createElement("div");
+                    const query = inputElement.value;
+                    const value = suggestion.value;
+                    const label = suggestion.label || value;
+                    
+                    // Evidenzia il testo corrispondente
+                    const matchIndex = value.toLowerCase().indexOf(query.toLowerCase());
+                    if (matchIndex !== -1 && query.length > 0) {
+                        const beforeMatch = value.substring(0, matchIndex);
+                        const match = value.substring(matchIndex, matchIndex + query.length);
+                        const afterMatch = value.substring(matchIndex + query.length);
+                        b.innerHTML = beforeMatch + "<strong>" + match + "</strong>" + afterMatch;
+                        if (label !== value) {
+                            b.innerHTML += " <small>(" + (suggestion.count || 0) + " usi)</small>";
+                        }
+                    } else {
+                        b.innerHTML = label;
+                    }
+                    
+                    // Click handler
+                    b.addEventListener("click", function(e) {
+                        inputElement.value = value;
+                        closeAllLists();
+                    });
+                    
+                    a.appendChild(b);
+                });
+            }
+            
+            // Carica suggerimenti dall'API
+            function fetchSuggestions(query = '') {
+                fetch('/api/debug-nomi-scontrini.php?q=' + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.data) {
+                            createSuggestionsList(data.data);
+                            // Update debug info
+                            const debugDiv = document.getElementById('debug');
+                            debugDiv.innerHTML = '<h3>Debug Info:</h3><p>✅ API funzionante: ' + data.debug + '</p>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Autocomplete error:', error);
+                        const debugDiv = document.getElementById('debug');
+                        debugDiv.innerHTML = '<h3>Debug Info:</h3><p>❌ Errore API: ' + error + '</p>';
+                    });
+            }
+            
+            // Input: ricerca con debouncing
+            inputElement.addEventListener("input", function(e) {
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(() => {
+                    fetchSuggestions(this.value);
+                }, 300);
+            });
+            
+            // Focus: mostra suggerimenti più popolari
+            inputElement.addEventListener("focus", function(e) {
+                if (this.value.length === 0) {
+                    fetchSuggestions(); // Carica suggerimenti più popolari
+                }
+            });
+            
+            // Gestione tasti freccia e invio
+            inputElement.addEventListener("keydown", function(e) {
+                let x = document.getElementById(this.id + "autocomplete-list");
+                if (x) x = x.getElementsByTagName("div");
+                
+                if (e.keyCode == 40) { // Freccia giù
+                    e.preventDefault();
+                    currentFocus++;
+                    addActive(x);
+                } else if (e.keyCode == 38) { // Freccia su  
+                    e.preventDefault();
+                    currentFocus--;
+                    addActive(x);
+                } else if (e.keyCode == 13) { // Invio
+                    e.preventDefault();
+                    if (currentFocus > -1 && x) {
+                        x[currentFocus].click();
+                    }
+                } else if (e.keyCode == 27) { // Escape
+                    closeAllLists();
+                }
+            });
+            
+            // Chiudi liste quando si clicca altrove
+            document.addEventListener("click", function (e) {
+                closeAllLists(e.target);
+            });
+        }
+
+        // Inizializza autocomplete quando la pagina è caricata
         document.addEventListener('DOMContentLoaded', function() {
             const debugDiv = document.getElementById('debug');
-            debugDiv.innerHTML = '<h3>Debug Info:</h3><p>JavaScript caricato, verifica console per messaggi</p>';
+            debugDiv.innerHTML = '<h3>Debug Info:</h3><p>JavaScript caricato, inizializzazione...</p>';
             
-            // Test API
-            fetch('/api/nomi-scontrini.php')
-                .then(response => response.json())
-                .then(data => {
-                    debugDiv.innerHTML += '<p>API Response: ' + JSON.stringify(data) + '</p>';
-                })
-                .catch(error => {
-                    debugDiv.innerHTML += '<p>API Error: ' + error + '</p>';
-                });
+            const nomeInput = document.getElementById('nome');
+            if (nomeInput) {
+                setupAutocomplete(nomeInput);
+                console.log('Autocomplete di test inizializzato');
+                debugDiv.innerHTML += '<p>✅ Autocomplete inizializzato per il campo nome</p>';
+            }
         });
     </script>
 </body>
