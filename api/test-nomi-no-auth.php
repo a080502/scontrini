@@ -1,89 +1,60 @@
 <?php
 // API temporanea senza autenticazione per test
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
 
-ob_start();
+echo "Inizio test...\n";
 
 try {
+    echo "1. Caricamento config...\n";
+    require_once '../config.php';
+    echo "2. Config OK\n";
+    
+    echo "3. Caricamento database...\n";
+    require_once '../includes/database.php';
+    echo "4. Database class OK\n";
+    
+    echo "5. Caricamento auth...\n";
+    require_once '../includes/auth.php';
+    echo "6. Auth class OK\n";
+    
+    echo "7. Caricamento utils...\n";
+    require_once '../includes/utils.php';
+    echo "8. Utils class OK\n";
+    
+    echo "9. Test bootstrap completo...\n";
     require_once '../includes/bootstrap.php';
+    echo "10. Bootstrap OK\n";
+    
 } catch (Exception $e) {
-    ob_clean();
-    header('Content-Type: application/json');
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Errore bootstrap: ' . $e->getMessage()]);
+    echo "ERRORE: " . $e->getMessage() . "\n";
+    echo "File: " . $e->getFile() . " Riga: " . $e->getLine() . "\n";
+    exit;
+} catch (Error $e) {
+    echo "ERRORE FATALE: " . $e->getMessage() . "\n";
+    echo "File: " . $e->getFile() . " Riga: " . $e->getLine() . "\n";
     exit;
 }
 
-ob_clean();
-header('Content-Type: application/json');
-
+// Se arriviamo qui, proviamo il database
 try {
+    echo "11. Test istanza database...\n";
     $db = Database::getInstance();
-    $query = $_GET['q'] ?? '';
+    echo "12. Database instance OK\n";
     
-    // Query semplice senza controlli di autenticazione
-    if (empty($query)) {
-        // Recupera i 10 nomi più utilizzati
-        $nomi = $db->fetchAll("
-            SELECT 
-                nome,
-                COUNT(*) as count_usage,
-                MAX(data_scontrino) as last_used
-            FROM scontrini 
-            GROUP BY nome 
-            ORDER BY count_usage DESC, last_used DESC
-            LIMIT 10
-        ");
-    } else {
-        // Ricerca con filtro testo
-        if (strlen($query) < 2) {
-            echo json_encode(['success' => true, 'nomi' => []]);
-            exit;
-        }
-        
-        $nomi = $db->fetchAll("
-            SELECT 
-                nome,
-                COUNT(*) as count_usage,
-                MAX(data_scontrino) as last_used
-            FROM scontrini 
-            WHERE nome LIKE ?
-            GROUP BY nome 
-            ORDER BY count_usage DESC, last_used DESC
-            LIMIT 15
-        ", ["%{$query}%"]);
+    // Query molto semplice
+    echo "13. Test query SELECT...\n";
+    $result = $db->fetchAll("SELECT nome FROM scontrini LIMIT 3");
+    echo "14. Query OK - trovati " . count($result) . " risultati\n";
+    
+    foreach ($result as $row) {
+        echo "Nome: " . $row['nome'] . "\n";
     }
-    
-    // Formatta risultati
-    $suggestions = [];
-    foreach ($nomi as $nome_data) {
-        $suggestions[] = [
-            'value' => $nome_data['nome'],
-            'label' => $nome_data['nome'] . ' (' . $nome_data['count_usage'] . ' volte)',
-            'count' => $nome_data['count_usage'],
-            'last_used' => $nome_data['last_used']
-        ];
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'nomi' => $suggestions,
-        'debug' => 'API senza auth - ' . count($suggestions) . ' risultati'
-    ]);
     
 } catch (Exception $e) {
-    ob_clean();
-    header('Content-Type: application/json');
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Errore: ' . $e->getMessage(),
-        'debug' => [
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]
-    ]);
+    echo "ERRORE DATABASE: " . $e->getMessage() . "\n";
+    exit;
 }
-exit;
+
+echo "TUTTI I TEST COMPLETATI CON SUCCESSO!\n";
 ?>
