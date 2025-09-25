@@ -76,8 +76,7 @@ function setupAutocomplete(inputElement) {
     
     // Fetch dei suggerimenti dall'API
     function fetchSuggestions(query) {
-        // Temporaneamente usa API senza auth per test
-        const url = query ? `api/test-nomi-no-auth.php?q=${encodeURIComponent(query)}` : 'api/test-nomi-no-auth.php';
+        const url = query ? `api/nomi-scontrini.php?q=${encodeURIComponent(query)}` : 'api/nomi-scontrini.php';
         
         console.log('Chiamata API autocomplete:', url);
         
