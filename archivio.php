@@ -18,26 +18,31 @@ $filters = [
 
 // Costruisci query con filtri e permessi utente
 $where_conditions = ["s.archiviato = 1"];
+$where_conditions_no_prefix = ["archiviato = 1"]; // Per query senza JOIN
 $params = [];
 
 // Applica filtri avanzati usando la nuova funzione
 $advanced_filter_data = Utils::buildAdvancedFilters($db, $current_user, $filters, 's.');
-// Modifica le condizioni per adattarle all'archivio (archiviato = 1)
-$where_conditions[0] = "s.archiviato = 1";
+$advanced_filter_data_no_prefix = Utils::buildAdvancedFilters($db, $current_user, $filters, '');
+
 $where_conditions = array_merge($where_conditions, $advanced_filter_data['where_conditions']);
+$where_conditions_no_prefix = array_merge($where_conditions_no_prefix, $advanced_filter_data_no_prefix['where_conditions']);
 $params = array_merge($params, $advanced_filter_data['params']);
 
 if ($anno) {
     $where_conditions[] = "YEAR(s.data_scontrino) = ?";
+    $where_conditions_no_prefix[] = "YEAR(data_scontrino) = ?";
     $params[] = $anno;
 }
 
 if ($mese) {
     $where_conditions[] = "MONTH(s.data_scontrino) = ?";
+    $where_conditions_no_prefix[] = "MONTH(data_scontrino) = ?";
     $params[] = $mese;
 }
 
 $where_clause = implode(" AND ", $where_conditions);
+$where_clause_no_prefix = implode(" AND ", $where_conditions_no_prefix);
 
 // Recupera scontrini archiviati
 $scontrini = $db->fetchAll("
@@ -59,11 +64,11 @@ $stats = $db->fetchOne("
         SUM(CASE WHEN incassato = 1 THEN lordo ELSE 0 END) as totale_incassato,
         SUM(CASE WHEN versato = 1 THEN lordo ELSE 0 END) as totale_versato
     FROM scontrini 
-    WHERE $where_clause
+    WHERE $where_clause_no_prefix
 ", $params);
 
 // Anni disponibili per filtro (solo dall'archivio e rispettando i permessi)
-$anni_where = $where_conditions; // Riusa le stesse condizioni di filtro
+$anni_where = $where_conditions_no_prefix; // Usa le condizioni senza prefisso
 $anni = $db->fetchAll("
     SELECT DISTINCT YEAR(data_scontrino) as anno 
     FROM scontrini 
