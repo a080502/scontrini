@@ -78,33 +78,49 @@ function setupAutocomplete(inputElement) {
     function fetchSuggestions(query) {
         const url = query ? `api/nomi-scontrini.php?q=${encodeURIComponent(query)}` : 'api/nomi-scontrini.php';
         
+        console.log('Chiamata API autocomplete:', url);
+        
         fetch(url)
             .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
+                console.log('Response status:', response.status);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 return response.json();
             })
             .then(data => {
+                console.log('Dati ricevuti dall\'API:', data);
                 if (data.success && data.nomi) {
                     createSuggestionsList(data.nomi);
+                } else {
+                    console.log('Nessun dato valido ricevuto:', data);
                 }
             })
             .catch(error => {
-                console.log('Errore caricamento suggerimenti:', error);
+                console.error('Errore caricamento suggerimenti:', error);
+                // Mostra un messaggio di errore temporaneo
+                const debugDiv = document.createElement('div');
+                debugDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:red;color:white;padding:10px;z-index:9999;border-radius:5px;';
+                debugDiv.textContent = 'Errore autocomplete: ' + error.message;
+                document.body.appendChild(debugDiv);
+                setTimeout(() => debugDiv.remove(), 5000);
             });
     }
     
     // Event listener per input
     inputElement.addEventListener("input", function(e) {
         const val = this.value;
+        console.log('Input digitato:', val, 'lunghezza:', val.length);
         
         // Debounce per evitare troppe chiamate API
         clearTimeout(debounceTimeout);
         debounceTimeout = setTimeout(() => {
             if (val.length >= 2) {
+                console.log('Ricerca per:', val);
                 fetchSuggestions(val);
             } else if (val.length === 0) {
+                console.log('Campo vuoto, carico suggerimenti popolari');
                 fetchSuggestions(); // Carica suggerimenti più popolari
             } else {
+                console.log('Testo troppo corto, chiudo suggerimenti');
                 closeAllLists();
             }
         }, 300);
@@ -112,7 +128,9 @@ function setupAutocomplete(inputElement) {
     
     // Focus: mostra suggerimenti più popolari
     inputElement.addEventListener("focus", function(e) {
+        console.log('Focus su campo nome, valore attuale:', this.value);
         if (this.value.length === 0) {
+            console.log('Caricamento suggerimenti più popolari...');
             fetchSuggestions(); // Carica suggerimenti più popolari
         }
     });
@@ -151,7 +169,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const nomeInput = document.getElementById('nome');
     if (nomeInput) {
         setupAutocomplete(nomeInput);
-        console.log('Autocomplete dinamico inizializzato');
+        console.log('✅ Autocomplete dinamico inizializzato per elemento:', nomeInput);
+        
+        // Test immediato per vedere se l'API è raggiungibile
+        setTimeout(() => {
+            console.log('Test API autocomplete...');
+            fetch('api/nomi-scontrini.php')
+                .then(response => response.json())
+                .then(data => console.log('✅ Test API completato:', data))
+                .catch(error => console.error('❌ Test API fallito:', error));
+        }, 1000);
+    } else {
+        console.log('❌ Elemento "nome" non trovato nella pagina');
     }
     
     // Formattazione automatica importi - FIX COMPLETO
