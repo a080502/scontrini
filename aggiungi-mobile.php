@@ -4,11 +4,6 @@ require_once 'config.php';
 define('APP_NAME', 'NomeApp');
 Auth::requireLogin();
 
-// Redirect alla versione desktop se non è un dispositivo mobile (e non forzato)
-if (!Utils::isMobileDevice() && !isset($_GET['force_mobile'])) {
-    Utils::redirect('aggiungi.php');
-}
-
 $db = Database::getInstance();
 $current_user = Auth::getCurrentUser();
 $error = '';

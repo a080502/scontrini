@@ -124,15 +124,23 @@ class Utils {
         
         // Se non esiste una versione mobile specifica, usa quella desktop
         if (!$mobile_page) {
-            self::redirect($desktop_page);
-            return;
+            return; // Non fare redirect se non c'è versione mobile
         }
         
-        // Se è un dispositivo mobile, vai alla versione mobile
+        // Ottieni il nome del file corrente
+        $current_page = basename($_SERVER['PHP_SELF']);
+        
+        // Se è un dispositivo mobile
         if (self::isMobileDevice()) {
-            self::redirect($mobile_page);
+            // Redirect solo se non siamo già sulla pagina mobile
+            if ($current_page !== basename($mobile_page)) {
+                self::redirect($mobile_page);
+            }
         } else {
-            self::redirect($desktop_page);
+            // Redirect solo se non siamo già sulla pagina desktop
+            if ($current_page !== basename($desktop_page)) {
+                self::redirect($desktop_page);
+            }
         }
     }
     
