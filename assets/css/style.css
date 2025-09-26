@@ -490,7 +490,7 @@ input[type="text"], input[type="date"], input[type="number"], input[type="passwo
 }
 
 .navbar .brand {
-    font-size: 1.4em;
+    font-size: 1em;
     font-weight: bold;
     padding: 8px 16px;
 }
