@@ -6,7 +6,7 @@
 
 // Configurazione Database
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'scontrini_db_TEST');
+define('DB_NAME', 'scontrini_db');
 define('DB_USER', 'denis');
 define('DB_PASS', 'a080502');
 
