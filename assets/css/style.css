@@ -473,6 +473,36 @@ input[type="text"], input[type="date"], input[type="number"], input[type="passwo
     z-index: 100;
 }
 
+/* Transizioni smooth per l'effetto scroll */
+.navbar-transition {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Stili quando si fa scroll */
+.navbar-scrolled {
+    padding: 8px 25px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    background-color: rgba(0, 123, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+}
+
+.navbar-scrolled .brand {
+    font-size: 0.9em !important;
+}
+
+.navbar-scrolled .nav-links a {
+    padding: 6px 10px !important;
+    font-size: 0.9em;
+}
+
+.navbar-scrolled .user-details strong {
+    font-size: 12px !important;
+}
+
+.navbar-scrolled .user-details small {
+    font-size: 11px !important;
+}
+
 .navbar a {
     color: white;
     text-decoration: none;

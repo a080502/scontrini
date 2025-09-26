@@ -1,3 +1,33 @@
+// Navbar sticky con effetto rimpicciolimento durante lo scroll
+document.addEventListener('DOMContentLoaded', function() {
+    const navbar = document.querySelector('.navbar');
+    if (navbar) {
+        let lastScrollTop = 0;
+        let scrolling = false;
+        
+        // Aggiungi le classi CSS necessarie
+        navbar.classList.add('navbar-transition');
+        
+        window.addEventListener('scroll', function() {
+            if (!scrolling) {
+                scrolling = true;
+                requestAnimationFrame(function() {
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    
+                    if (scrollTop > 50) {
+                        navbar.classList.add('navbar-scrolled');
+                    } else {
+                        navbar.classList.remove('navbar-scrolled');
+                    }
+                    
+                    lastScrollTop = scrollTop;
+                    scrolling = false;
+                });
+            }
+        });
+    }
+});
+
 // Autocomplete dinamico per i nomi degli scontrini
 function setupAutocomplete(inputElement) {
     let currentFocus = -1;
