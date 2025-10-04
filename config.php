@@ -5,10 +5,10 @@
  */
 
 // Configurazione Database
-define('DB_HOST', 'localhost');
+define('DB_HOST', '127.0.0.1');
 define('DB_NAME', 'scontrini_db');
 define('DB_USER', 'denis');
-define('DB_PASS', 'a080502');
+define('DB_PASS', getenv('DB_PASS') ?: 'denis'); // Usa variabile d'ambiente se disponibile
 
 // Configurazione Applicazione
 define('APP_NAME', 'Sistema Gestione Scontrini');
