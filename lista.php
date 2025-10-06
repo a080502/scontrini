@@ -1,5 +1,6 @@
 <?php
 require_once 'includes/bootstrap.php';
+require_once 'includes/image_manager.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
@@ -231,6 +232,7 @@ ob_start();
                 <thead>
                     <tr>
                         <th>Data</th>
+                        <th>Foto</th>
                         <th>Lordo</th>
                         <th>Da Versare</th>
                         <th>Stato</th>
@@ -244,6 +246,18 @@ ob_start();
                         <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?>
                             <?php if ($scontrino['note']): ?>
                             <br><small class="text-muted"><?php echo htmlspecialchars($scontrino['note']); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td style="text-align: center;">
+                            <?php if (!empty($scontrino['foto_scontrino']) && file_exists($scontrino['foto_scontrino'])): ?>
+                                <a href="<?php echo ImageManager::getPhotoUrl($scontrino['foto_scontrino']); ?>" 
+                                   target="_blank" title="Visualizza foto scontrino">
+                                    <img src="<?php echo ImageManager::getPhotoUrl($scontrino['foto_scontrino']) . '&thumbnail=1'; ?>" 
+                                         style="max-width: 50px; max-height: 50px; border-radius: 4px; border: 1px solid #ddd;"
+                                         alt="Foto scontrino">
+                                </a>
+                            <?php else: ?>
+                                <span class="text-muted" style="font-size: 12px;">Nessuna foto</span>
                             <?php endif; ?>
                         </td>
                         <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>

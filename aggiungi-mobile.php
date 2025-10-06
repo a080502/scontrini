@@ -1,5 +1,6 @@
 <?php
 require_once 'includes/bootstrap.php';
+require_once 'includes/image_manager.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
@@ -17,6 +18,26 @@ if ($_POST) {
     $da_versare = Utils::safeFloat($_POST['da_versare'] ?? '');
     $note = Utils::sanitizeString($_POST['note'] ?? '');
     $selected_user_id = isset($_POST['utente_id']) ? (int)$_POST['utente_id'] : null;
+    
+    // Gestione file foto scontrino
+    $foto_uploaded = false;
+    $foto_path = null;
+    $foto_mime_type = null;
+    $foto_size = null;
+    
+    // Gestione coordinate GPS se presenti
+    $gps_data = null;
+    if (!empty($_POST['gps_latitude']) && !empty($_POST['gps_longitude'])) {
+        $gps_data = [
+            'latitude' => (float)$_POST['gps_latitude'],
+            'longitude' => (float)$_POST['gps_longitude'],
+            'accuracy' => !empty($_POST['gps_accuracy']) ? (float)$_POST['gps_accuracy'] : null
+        ];
+    }
+    
+    if (isset($_FILES['foto_scontrino']) && $_FILES['foto_scontrino']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $foto_uploaded = true;
+    }
     
     // Se da_versare è vuoto o zero, usa l'importo lordo
     if ($da_versare <= 0) {
@@ -66,11 +87,44 @@ if ($_POST) {
         try {
             // Inserisci lo scontrino associandolo all'utente e filiale determinati
             $db->query("
-                INSERT INTO scontrini (nome, data_scontrino, lordo, da_versare, note, utente_id, filiale_id) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ", [$nome, $data_scontrino, $lordo, $da_versare, $note, $target_user_id, $target_filiale_id]);
+                INSERT INTO scontrini (nome, data_scontrino, lordo, da_versare, note, utente_id, filiale_id, foto_scontrino, foto_mime_type, foto_size, gps_latitude, gps_longitude, gps_accuracy, gps_timestamp) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ", [$nome, $data_scontrino, $lordo, $da_versare, $note, $target_user_id, $target_filiale_id, $foto_path, $foto_mime_type, $foto_size,
+                $gps_data ? $gps_data['latitude'] : null,
+                $gps_data ? $gps_data['longitude'] : null, 
+                $gps_data ? $gps_data['accuracy'] : null,
+                $gps_data ? date('Y-m-d H:i:s') : null
+            ]);
+            
+            $scontrino_id = $db->lastInsertId();
+            
+            // Gestisce l'upload della foto se presente
+            if ($foto_uploaded) {
+                // Prepara info utente per nome file
+                $user_info = [
+                    'username' => $current_user['username'],
+                    'nome' => $current_user['nome']
+                ];
+                
+                $upload_result = ImageManager::saveScontrinoPhoto($_FILES['foto_scontrino'], $scontrino_id, $user_info, $gps_data);
+                
+                if ($upload_result['success']) {
+                    // Aggiorna lo scontrino con i dati della foto
+                    $db->query("
+                        UPDATE scontrini 
+                        SET foto_scontrino = ?, foto_mime_type = ?, foto_size = ?
+                        WHERE id = ?
+                    ", [$upload_result['path'], $upload_result['mime_type'], $upload_result['size'], $scontrino_id]);
+                } else {
+                    // Se l'upload fallisce, mostra un warning ma non bloccare il salvataggio
+                    $warning = 'Scontrino salvato ma foto non caricata: ' . $upload_result['error'];
+                }
+            }
             
             $success_message = 'Scontrino aggiunto con successo!';
+            if (isset($warning)) {
+                $success_message .= ' ⚠️ ' . $warning;
+            }
             if ($target_user_id !== $current_user['id']) {
                 // Trova il nome dell'utente per il messaggio
                 $target_user_name = '';
@@ -81,6 +135,9 @@ if ($_POST) {
                     }
                 }
                 $success_message = "Scontrino aggiunto con successo per l'utente: " . $target_user_name;
+                if (isset($warning)) {
+                    $success_message .= ' ⚠️ ' . $warning;
+                }
             }
             
             Utils::setFlashMessage('success', $success_message);
@@ -339,6 +396,98 @@ if ($_POST) {
                 position: fixed;
             }
         }
+        
+        /* Stili per gestione foto */
+        .file-input {
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .file-input:focus {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        
+        .foto-preview {
+            margin-top: 15px;
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .foto-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 2px solid #dee2e6;
+        }
+        
+        .btn-clear-foto {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-clear-foto:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+        
+        /* Migliore supporto touch per file input */
+        @media (pointer: coarse) {
+            .file-input {
+                padding: 20px;
+                font-size: 18px;
+            }
+        }
+        
+        /* Stili per status GPS */
+        .gps-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .gps-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .gps-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .gps-status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .gps-status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
     </style>
 </head>
 <body>
@@ -360,7 +509,7 @@ if ($_POST) {
             </a>
         </div>
         
-        <form method="POST" class="mobile-form">
+        <form method="POST" class="mobile-form" enctype="multipart/form-data">
             <?php if ((Auth::isResponsabile() || Auth::isAdmin()) && !empty($available_users)): ?>
             <div class="user-selector">
                 <label for="utente_id">👤 Utente</label>
@@ -442,6 +591,31 @@ if ($_POST) {
                           rows="3"><?php echo htmlspecialchars($note ?? ''); ?></textarea>
             </div>
             
+            <div class="form-group">
+                <label for="foto_scontrino">📷 Foto Scontrino</label>
+                <input type="file" 
+                       id="foto_scontrino" 
+                       name="foto_scontrino" 
+                       class="form-control file-input"
+                       accept="image/*"
+                       capture="environment">
+                <div class="help-text">Scatta o seleziona una foto dello scontrino (opzionale)</div>
+                
+                <div id="foto-preview" class="foto-preview" style="display: none;">
+                    <img id="preview-img" alt="Anteprima foto">
+                    <button type="button" onclick="clearFoto()" class="btn-clear-foto">❌ Rimuovi</button>
+                </div>
+            </div>
+            
+            <!-- Campi hidden per coordinate GPS -->
+            <input type="hidden" id="gps_latitude" name="gps_latitude">
+            <input type="hidden" id="gps_longitude" name="gps_longitude">
+            <input type="hidden" id="gps_accuracy" name="gps_accuracy">
+            
+            <div id="gps-status" class="gps-status" style="display: none;">
+                <div id="gps-message"></div>
+            </div>
+            
             <div class="button-group">
                 <button type="submit" class="btn btn-primary">
                     💾 Salva
@@ -516,6 +690,172 @@ if ($_POST) {
             // Implementazione base di suggerimenti
             // In una versione completa potresti fare una chiamata AJAX per ottenere nomi già usati
         });
+        
+        // Gestione foto
+        document.getElementById('foto_scontrino').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('foto-preview');
+            const previewImg = document.getElementById('preview-img');
+            
+            if (file) {
+                // Validazione dimensione (5MB max)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File troppo grande! Dimensione massima: 5MB');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Validazione tipo file
+                if (!file.type.startsWith('image/')) {
+                    alert('Seleziona solo file immagine!');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Mostra anteprima
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                    
+                    // Scroll verso l'anteprima
+                    preview.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                };
+                reader.readAsDataURL(file);
+                
+                vibrate(); // Feedback tattile
+                
+                // Acquisisci coordinate GPS quando viene selezionata una foto
+                getCurrentLocationMobile();
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+        
+        // Funzioni GPS per mobile
+        function getCurrentLocationMobile() {
+            if (!navigator.geolocation) {
+                showGpsMessageMobile('📍 GPS non supportato', 'warning');
+                return;
+            }
+            
+            showGpsMessageMobile('📡 Acquisizione posizione...', 'info');
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 15000, // Timeout più lungo per mobile
+                maximumAge: 30000 // Cache per 30 secondi
+            };
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    
+                    // Salva coordinate nei campi hidden
+                    document.getElementById('gps_latitude').value = lat;
+                    document.getElementById('gps_longitude').value = lng;
+                    document.getElementById('gps_accuracy').value = accuracy;
+                    
+                    showGpsMessageMobile(`📍 Posizione acquisita (±${Math.round(accuracy)}m)`, 'success');
+                    vibrate(); // Feedback tattile per successo
+                },
+                function(error) {
+                    let message = '⚠️ Errore GPS: ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message += 'Permesso negato';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message += 'Non disponibile';
+                            break;
+                        case error.TIMEOUT:
+                            message += 'Timeout';
+                            break;
+                        default:
+                            message += 'Sconosciuto';
+                            break;
+                    }
+                    showGpsMessageMobile(message, 'error');
+                },
+                options
+            );
+        }
+        
+        function showGpsMessageMobile(message, type) {
+            const gpsStatus = document.getElementById('gps-status');
+            const gpsMessage = document.getElementById('gps-message');
+            
+            gpsMessage.textContent = message;
+            gpsStatus.className = 'gps-status ' + type;
+            gpsStatus.style.display = 'block';
+            
+            // Nascondi dopo 4 secondi per messaggi di successo
+            if (type === 'success') {
+                setTimeout(() => {
+                    gpsStatus.style.display = 'none';
+                }, 4000);
+            }
+        }
+        
+        // Funzione per cancellare la foto
+        function clearFoto() {
+            document.getElementById('foto_scontrino').value = '';
+            document.getElementById('foto-preview').style.display = 'none';
+            vibrate();
+        }
+        
+        // Migliora l'UX del file input su mobile
+        document.getElementById('foto_scontrino').addEventListener('click', function() {
+            vibrate();
+        });
+        
+        // Gestisci il drag and drop se supportato
+        const fotoInput = document.getElementById('foto_scontrino');
+        const formGroup = fotoInput.closest('.form-group');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            formGroup.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            formGroup.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            formGroup.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight(e) {
+            formGroup.style.background = '#e3f2fd';
+            formGroup.style.borderColor = '#2196f3';
+        }
+        
+        function unhighlight(e) {
+            formGroup.style.background = '';
+            formGroup.style.borderColor = '';
+        }
+        
+        formGroup.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                fotoInput.files = files;
+                fotoInput.dispatchEvent(new Event('change'));
+            }
+        }
     </script>
 </body>
 </html>

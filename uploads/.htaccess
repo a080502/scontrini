@@ -1,0 +1,9 @@
+# Accesso negato
+# Questa directory contiene file sensibili
+Order deny,allow
+Deny from all
+
+# Eccezione per i file immagine attraverso script PHP
+<Files "*.php">
+    Allow from all
+</Files>
