@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (Auth::isAdmin()) {
     $utenti = $db->fetchAll("
         SELECT u.*, f.nome as filiale_nome,
-               (SELECT COUNT(*) FROM scontrini s WHERE s.utente_id = u.id) as scontrini_count
+               (SELECT COUNT(*) FROM scontrini s WHERE s.utente_id = u.id AND s.archiviato = 0) as scontrini_count
         FROM utenti u
         LEFT JOIN filiali f ON u.filiale_id = f.id
         ORDER BY u.created_at DESC
@@ -124,7 +124,7 @@ if (Auth::isAdmin()) {
     // Responsabili vedono solo utenti della loro filiale
     $utenti = $db->fetchAll("
         SELECT u.*, f.nome as filiale_nome,
-               (SELECT COUNT(*) FROM scontrini s WHERE s.utente_id = u.id) as scontrini_count
+               (SELECT COUNT(*) FROM scontrini s WHERE s.utente_id = u.id AND s.archiviato = 0) as scontrini_count
         FROM utenti u
         LEFT JOIN filiali f ON u.filiale_id = f.id
         WHERE u.filiale_id = ?

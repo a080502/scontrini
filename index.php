@@ -63,7 +63,7 @@ $ultimi_scontrini = $db->fetchAll("
     FROM scontrini s
     LEFT JOIN utenti u ON s.utente_id = u.id
     LEFT JOIN filiali f ON s.filiale_id = f.id
-    WHERE 1=1" . $where_clause_with_prefix . "
+    WHERE s.archiviato = 0" . $where_clause_with_prefix . "
     ORDER BY s.created_at DESC 
     LIMIT 5
 ", $query_params_with_prefix);
