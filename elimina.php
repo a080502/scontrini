@@ -1,5 +1,6 @@
 <?php
 require_once 'includes/bootstrap.php';
+require_once 'includes/image_manager.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
@@ -18,12 +19,35 @@ if (!$scontrino) {
     Utils::redirect('lista.php');
 }
 
+// Verifica che lo scontrino non sia archiviato (opzionale - potremmo voler permettere l'eliminazione)
+// Per ora commentiamo questo controllo per permettere eliminazione anche di scontrini archiviati
+/*
+if ($scontrino['archiviato']) {
+    Utils::setFlashMessage('error', 'Non puoi eliminare uno scontrino archiviato. Prima riattivalo.');
+    Utils::redirect('archivio.php');
+}
+*/
+
 if ($_POST && isset($_POST['conferma'])) {
     try {
-        // Elimina lo scontrino
+        // Elimina il file foto se presente
+        if (!empty($scontrino['foto_scontrino'])) {
+            $foto_eliminata = ImageManager::deleteScontrinoPhoto($scontrino['foto_scontrino']);
+            if (!$foto_eliminata) {
+                // Log dell'errore ma non bloccare l'eliminazione dello scontrino
+                error_log("Impossibile eliminare il file foto: " . $scontrino['foto_scontrino']);
+            }
+        }
+        
+        // Elimina lo scontrino dal database
         $db->query("DELETE FROM scontrini WHERE id = ?", [$id]);
         
-        Utils::setFlashMessage('success', "Scontrino '{$scontrino['nome']}' eliminato con successo!");
+        $message = "Scontrino '{$scontrino['nome']}' eliminato con successo!";
+        if (!empty($scontrino['foto_scontrino'])) {
+            $message .= " La foto associata è stata rimossa.";
+        }
+        
+        Utils::setFlashMessage('success', $message);
         Utils::redirect('lista.php');
         
     } catch (Exception $e) {
@@ -60,6 +84,18 @@ ob_start();
     </p>
     <?php if ($scontrino['note']): ?>
     <p><strong>Note:</strong> <?php echo htmlspecialchars($scontrino['note']); ?></p>
+    <?php endif; ?>
+    
+    <?php if (!empty($scontrino['foto_scontrino']) && file_exists($scontrino['foto_scontrino'])): ?>
+    <div style="margin-top: 15px;">
+        <p><strong>Foto allegata:</strong></p>
+        <div style="text-align: center;">
+            <img src="<?php echo ImageManager::getPhotoUrl($scontrino['foto_scontrino']) . '&thumbnail=1'; ?>" 
+                 style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;"
+                 alt="Foto scontrino da eliminare">
+        </div>
+        <p class="text-danger"><small><i class="fas fa-exclamation-triangle"></i> La foto verrà eliminata definitivamente</small></p>
+    </div>
     <?php endif; ?>
 </div>
 

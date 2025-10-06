@@ -19,6 +19,12 @@ if (!$scontrino) {
     Utils::redirect('lista.php');
 }
 
+// Verifica che lo scontrino non sia archiviato
+if ($scontrino['archiviato']) {
+    Utils::setFlashMessage('error', 'Non puoi modificare uno scontrino archiviato');
+    Utils::redirect('archivio.php');
+}
+
 $error = '';
 
 if ($_POST) {

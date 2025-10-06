@@ -1,5 +1,6 @@
 <?php
 require_once 'includes/bootstrap.php';
+require_once 'includes/image_manager.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
@@ -146,6 +147,7 @@ ob_start();
             <th>Lordo</th>
             <th>Da Versare</th>
             <th>Stato</th>
+            <th>Foto</th>
             <th>Data Archiviazione</th>
             <th>Azioni</th>
         </tr>
@@ -170,6 +172,15 @@ ob_start();
                     <span class="badge badge-success">Incassato</span>
                 <?php else: ?>
                     <span class="badge badge-warning">Non Incassato</span>
+                <?php endif; ?>
+            </td>
+            <td>
+                <?php if (!empty($scontrino['foto_scontrino'])): ?>
+                    <a href="view_photo.php?id=<?php echo $scontrino['id']; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="Visualizza foto">
+                        <i class="fas fa-image"></i>
+                    </a>
+                <?php else: ?>
+                    <span class="text-muted">-</span>
                 <?php endif; ?>
             </td>
             <td><?php echo Utils::formatDateTime($scontrino['data_archiviazione']); ?></td>
