@@ -38,36 +38,27 @@ class ImageManager {
                 }
             }
 
-            // Genera nome file dettagliato
+            // Genera nome file semplificato ma unico
             $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $timestamp = date('Y-m-d_H-i-s');
+            $timestamp = date('Ymd_His'); // Formato più compatto
             
-            // Costruisce il nome del file con informazioni dettagliate
+            // Nome file semplificato per evitare path troppo lunghi
             $filename_parts = [];
             $filename_parts[] = 'scontrino_' . $scontrino_id;
             
-            // Aggiunge informazioni utente se disponibili
-            if ($user_info && isset($user_info['username'])) {
-                $username_clean = self::sanitizeForFilename($user_info['username']);
-                $filename_parts[] = 'user_' . $username_clean;
-            }
-            
-            // Aggiunge timestamp
+            // Aggiunge timestamp compatto
             $filename_parts[] = $timestamp;
             
-            // Aggiunge coordinate GPS se disponibili
+            // Aggiunge coordinate GPS in formato compatto se disponibili
             if ($gps_data && isset($gps_data['latitude']) && isset($gps_data['longitude'])) {
-                $lat_clean = str_replace(['.', '-'], ['dot', 'neg'], (string)$gps_data['latitude']);
-                $lng_clean = str_replace(['.', '-'], ['dot', 'neg'], (string)$gps_data['longitude']);
-                $filename_parts[] = 'gps_' . $lat_clean . '_' . $lng_clean;
-                
-                if (isset($gps_data['accuracy'])) {
-                    $acc_clean = str_replace('.', 'dot', (string)$gps_data['accuracy']);
-                    $filename_parts[] = 'acc_' . $acc_clean . 'm';
-                }
+                // Formato compatto per GPS: lat,lng con 4 decimali max
+                $lat = round($gps_data['latitude'], 4);
+                $lng = round($gps_data['longitude'], 4);
+                $filename_parts[] = 'gps_' . str_replace(['.', '-'], ['d', 'n'], $lat) . '_' . str_replace(['.', '-'], ['d', 'n'], $lng);
             }
             
-            // ID univoco finale
+            // ID univoco finale più corto
+            $filename_parts[] = substr(uniqid(), -8); // Solo ultimi 8 caratteri
             $filename_parts[] = uniqid();
             
             $filename = implode('_', $filename_parts) . '.' . $extension;
