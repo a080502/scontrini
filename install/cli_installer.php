@@ -107,24 +107,30 @@ try {
     // 3. Installa dati di esempio
     if ($install_sample) {
         echo "3️⃣ Installazione dati di esempio...\n";
-        require_once 'includes/bootstrap.php';
-        $db = Database::getInstance();
-        installSampleDataCLI($db);
+        require_once 'config.php';
+        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+        installSampleDataCLI($pdo);
         echo "   ✅ Dati di esempio installati\n";
     }
     
     // 4. Crea utente amministratore
     echo "4️⃣ Creazione utente amministratore...\n";
-    if (!isset($db)) {
-        require_once 'includes/bootstrap.php';
-        $db = Database::getInstance();
+    if (!isset($pdo)) {
+        require_once 'config.php';
+        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
     }
     
     $hashed_password = password_hash($config['admin_password'], PASSWORD_DEFAULT);
-    $db->query(
-        "INSERT INTO utenti (nome, cognome, username, password, email, ruolo, attivo) VALUES (?, ?, ?, ?, ?, 'admin', 1)",
-        [$config['admin_nome'], $config['admin_cognome'], $config['admin_username'], $hashed_password, $config['admin_email']]
-    );
+    $stmt = $pdo->prepare("INSERT INTO utenti (nome, cognome, username, password, email, ruolo, attivo) VALUES (?, ?, ?, ?, ?, 'admin', 1)");
+    $stmt->execute([$config['admin_nome'], $config['admin_cognome'], $config['admin_username'], $hashed_password, $config['admin_email']]);
     echo "   ✅ Utente amministratore creato\n";
     
     // 5. Crea file di lock
@@ -234,7 +240,7 @@ function createDatabaseTables($host, $name, $user, $pass) {
 /**
  * Installa i dati di esempio (versione CLI)
  */
-function installSampleDataCLI($db) {
+function installSampleDataCLI($pdo) {
     // Filiali
     $filiali = [
         ['nome' => 'Filiale Centro', 'indirizzo' => 'Via Roma 123, Milano', 'telefono' => '02-1234567'],
@@ -243,10 +249,8 @@ function installSampleDataCLI($db) {
     ];
     
     foreach ($filiali as $filiale) {
-        $db->query(
-            "INSERT INTO filiali (nome, indirizzo, telefono, attiva) VALUES (?, ?, ?, 1)",
-            [$filiale['nome'], $filiale['indirizzo'], $filiale['telefono']]
-        );
+        $stmt = $pdo->prepare("INSERT INTO filiali (nome, indirizzo, telefono, attiva) VALUES (?, ?, ?, 1)");
+        $stmt->execute([$filiale['nome'], $filiale['indirizzo'], $filiale['telefono']]);
     }
     
     // Scontrini di esempio
@@ -259,18 +263,16 @@ function installSampleDataCLI($db) {
         $netto = $lordo * 0.85;
         $da_versare = mt_rand(0, 1) ? $lordo * 0.1 : null;
         
-        $db->query(
-            "INSERT INTO scontrini (numero, data, lordo, netto, da_versare, filiale_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [
-                'SC' . str_pad($i + 1, 6, '0', STR_PAD_LEFT),
-                $random_date->format('Y-m-d'),
-                $lordo,
-                $netto,
-                $da_versare,
-                mt_rand(1, 3),
-                $random_date->format('Y-m-d H:i:s')
-            ]
-        );
+        $stmt = $pdo->prepare("INSERT INTO scontrini (numero, data, lordo, netto, da_versare, filiale_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            'SC' . str_pad($i + 1, 6, '0', STR_PAD_LEFT),
+            $random_date->format('Y-m-d'),
+            $lordo,
+            $netto,
+            $da_versare,
+            mt_rand(1, 3),
+            $random_date->format('Y-m-d H:i:s')
+        ]);
     }
 }
 

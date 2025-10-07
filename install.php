@@ -10,6 +10,7 @@ if (file_exists('installation.lock')) {
     exit();
 }
 
+// Non includere bootstrap.php durante l'installazione per evitare conflitti
 $step = isset($_GET['step']) ? (int)$_GET['step'] : 1;
 $errors = [];
 $success = [];
@@ -59,7 +60,7 @@ function checkRequirements() {
         'GD Extension' => extension_loaded('gd'),
         'mbstring Extension' => extension_loaded('mbstring'),
         'Uploads directory writable' => is_writable('uploads/'),
-        'Config file writable' => is_writable('config.php') || !file_exists('config.php'),
+        'Directory writable for config' => is_writable('.') || (!file_exists('config.php') && is_writable('.')),
     ];
     
     return $requirements;
@@ -201,11 +202,23 @@ function handleSampleDataInstallation() {
     
     if ($install_sample) {
         try {
-            require_once 'includes/bootstrap.php';
-            $db = Database::getInstance();
+            // Leggi le credenziali dal config.php appena creato
+            if (!file_exists('config.php')) {
+                $errors[] = 'File di configurazione non trovato. Ripetere la configurazione database.';
+                return false;
+            }
+            
+            require_once 'config.php';
+            
+            // Connessione diretta al database
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ]);
             
             // Installa dati di esempio
-            installSampleData($db);
+            installSampleData($pdo);
             
             $success[] = 'Dati di esempio installati con successo';
         } catch (Exception $e) {
@@ -220,7 +233,7 @@ function handleSampleDataInstallation() {
 /**
  * Installa i dati di esempio
  */
-function installSampleData($db) {
+function installSampleData($pdo) {
     // Dati di esempio per filiali
     $filiali = [
         ['nome' => 'Filiale Centro', 'indirizzo' => 'Via Roma 123, Milano', 'telefono' => '02-1234567'],
@@ -229,10 +242,8 @@ function installSampleData($db) {
     ];
     
     foreach ($filiali as $filiale) {
-        $db->query(
-            "INSERT INTO filiali (nome, indirizzo, telefono, attiva) VALUES (?, ?, ?, 1)",
-            [$filiale['nome'], $filiale['indirizzo'], $filiale['telefono']]
-        );
+        $stmt = $pdo->prepare("INSERT INTO filiali (nome, indirizzo, telefono, attiva) VALUES (?, ?, ?, 1)");
+        $stmt->execute([$filiale['nome'], $filiale['indirizzo'], $filiale['telefono']]);
     }
     
     // Genera scontrini di esempio per l'ultimo anno
@@ -245,18 +256,16 @@ function installSampleData($db) {
         $netto = $lordo * 0.85; // Circa 15% di tasse
         $da_versare = mt_rand(0, 1) ? $lordo * 0.1 : null; // 10% chance di avere da_versare
         
-        $db->query(
-            "INSERT INTO scontrini (numero, data, lordo, netto, da_versare, filiale_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [
-                'SC' . str_pad($i + 1, 6, '0', STR_PAD_LEFT),
-                $random_date->format('Y-m-d'),
-                $lordo,
-                $netto,
-                $da_versare,
-                mt_rand(1, 3), // Random filiale
-                $random_date->format('Y-m-d H:i:s')
-            ]
-        );
+        $stmt = $pdo->prepare("INSERT INTO scontrini (numero, data, lordo, netto, da_versare, filiale_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            'SC' . str_pad($i + 1, 6, '0', STR_PAD_LEFT),
+            $random_date->format('Y-m-d'),
+            $lordo,
+            $netto,
+            $da_versare,
+            mt_rand(1, 3), // Random filiale
+            $random_date->format('Y-m-d H:i:s')
+        ]);
     }
 }
 
@@ -301,22 +310,33 @@ function handleAdminCreation() {
     }
     
     try {
-        require_once 'includes/bootstrap.php';
-        $db = Database::getInstance();
+        // Leggi le credenziali dal config.php
+        if (!file_exists('config.php')) {
+            $errors[] = 'File di configurazione non trovato. Ripetere la configurazione database.';
+            return false;
+        }
+        
+        require_once 'config.php';
+        
+        // Connessione diretta al database
+        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
         
         // Verifica se username già esiste
-        $existing = $db->fetchOne("SELECT id FROM utenti WHERE username = ?", [$username]);
-        if ($existing) {
+        $stmt = $pdo->prepare("SELECT id FROM utenti WHERE username = ?");
+        $stmt->execute([$username]);
+        if ($stmt->fetch()) {
             $errors[] = 'Username già esistente';
             return false;
         }
         
         // Crea utente amministratore
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $db->query(
-            "INSERT INTO utenti (nome, cognome, username, password, email, ruolo, attivo) VALUES (?, ?, ?, ?, ?, 'admin', 1)",
-            [$nome, $cognome, $username, $hashed_password, $email]
-        );
+        $stmt = $pdo->prepare("INSERT INTO utenti (nome, cognome, username, password, email, ruolo, attivo) VALUES (?, ?, ?, ?, ?, 'admin', 1)");
+        $stmt->execute([$nome, $cognome, $username, $hashed_password, $email]);
         
         $success[] = 'Utente amministratore creato con successo';
         return true;
@@ -503,6 +523,14 @@ $page_title = 'Installazione Sistema - ' . ($step === 1 ? 'Verifica Requisiti' :
                 <h3><i class="fas fa-database"></i> Step 2: Configurazione Database</h3>
                 <p>Inserisci i parametri di connessione al database MySQL.</p>
                 
+                <?php if (file_exists('config.php')): ?>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Attenzione:</strong> È stato trovato un file di configurazione esistente. 
+                        Procedendo, verrà sovrascritto con le nuove impostazioni.
+                    </div>
+                <?php endif; ?>
+                
                 <form method="post" class="mt-4">
                     <input type="hidden" name="action" value="create_database">
                     
@@ -529,6 +557,7 @@ $page_title = 'Installazione Sistema - ' . ($step === 1 ? 'Verifica Requisiti' :
                                 <label for="db_user" class="form-label">Username Database</label>
                                 <input type="text" class="form-control" id="db_user" name="db_user" 
                                        value="<?php echo $_POST['db_user'] ?? ''; ?>" required>
+                                <small class="form-text text-muted">Username per accedere a MySQL</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -536,6 +565,7 @@ $page_title = 'Installazione Sistema - ' . ($step === 1 ? 'Verifica Requisiti' :
                                 <label for="db_pass" class="form-label">Password Database</label>
                                 <input type="password" class="form-control" id="db_pass" name="db_pass" 
                                        value="<?php echo $_POST['db_pass'] ?? ''; ?>">
+                                <small class="form-text text-muted">Password per accedere a MySQL (lascia vuoto se non c'è)</small>
                             </div>
                         </div>
                     </div>
