@@ -92,8 +92,8 @@ $scontrini = $db->fetchAll("
 $scontrini_raggruppati = [];
 foreach ($scontrini as $scontrino) {
     $numero = $scontrino['numero'];
-    if (!isset($scontrini_raggruppati[$nome])) {
-        $scontrini_raggruppati[$nome] = [];
+    if (!isset($scontrini_raggruppati[$numero])) {
+        $scontrini_raggruppati[$numero] = [];
     }
     $scontrini_raggruppati[$numero][] = $scontrino;
 }
@@ -207,7 +207,7 @@ ob_start();
 
 <?php if ($scontrini_raggruppati): ?>
 <div class="scontrini-raggruppati">
-    <?php foreach ($scontrini_raggruppati as $nome => $scontrini_gruppo): ?>
+    <?php foreach ($scontrini_raggruppati as $numero => $scontrini_gruppo): ?>
         <?php 
         // Calcola totali per il gruppo
         $totale_gruppo_lordo = 0;
@@ -218,14 +218,14 @@ ob_start();
         foreach ($scontrini_gruppo as $scontrino) {
             $totale_gruppo_lordo += $scontrino['lordo'];
             $totale_gruppo_da_versare += $scontrino['da_versare'] ?? $scontrino['lordo'];
-            if ($scontrino['incassato']) $count_incassati++;
+            if ($scontrino['stato'] === 'incassato') $count_incassati++;
             if ($scontrino['stato'] === 'versato') $count_versati++;
         }
         ?>
         
         <div class="gruppo-nome">
             <h3 class="nome-gruppo">
-                <?php echo htmlspecialchars($nome); ?>
+                <?php echo htmlspecialchars($numero); ?>
                 <small>(<?php echo count($scontrini_gruppo); ?> scontrini)</small>
             </h3>
             
@@ -243,7 +243,7 @@ ob_start();
                 </thead>
                 <tbody>
                     <?php foreach ($scontrini_gruppo as $scontrino): ?>
-                    <tr class="<?php echo $scontrino['incassato'] ? 'incassato' : ''; ?>">
+                    <tr class="<?php echo ($scontrino['stato'] === 'incassato' || $scontrino['stato'] === 'versato') ? 'incassato' : ''; ?>">
                         <td><?php echo Utils::formatDate($scontrino['data']); ?>
                             <?php if ($scontrino['note']): ?>
                             <br><small class="text-muted"><?php echo htmlspecialchars($scontrino['note']); ?></small>
@@ -285,7 +285,7 @@ ob_start();
                                 <i class="fas fa-edit"></i>
                             </a>
                             
-                            <?php if (!$scontrino['incassato']): ?>
+                            <?php if ($scontrino['stato'] === 'attivo'): ?>
                             <a href="incassa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Incassa">
                                 <i class="fas fa-money-bill"></i>
                             </a>
@@ -323,7 +323,7 @@ ob_start();
             <!-- Totali del gruppo -->
             <div class="totali-gruppo">
                 <div class="totali-riga">
-                    <strong>Totali per <?php echo htmlspecialchars($nome); ?>:</strong>
+                    <strong>Totali per <?php echo htmlspecialchars($numero); ?>:</strong>
                     <span class="totale-importo">Lordo: <span class="euro"><?php echo Utils::formatCurrency($totale_gruppo_lordo); ?></span></span>
                     <span class="totale-da-versare">Da Versare: <span class="euro"><?php echo Utils::formatCurrency($totale_gruppo_da_versare); ?></span></span>
                     <span class="stato-gruppo">
