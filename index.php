@@ -186,17 +186,17 @@ ob_start();
                     <?php endif; ?>
                 </td>
                 <td>
-                    <a href="modifica.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning">
-                        <i class="fas fa-edit"></i>
+                    <a href="modifica.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Modifica scontrino">
+                        <i class="fas fa-edit"></i> Modifica
                     </a>
                     <?php if ($scontrino['stato'] !== 'archiviato'): ?>
                         <?php if ($scontrino['stato'] === 'attivo'): ?>
-                        <a href="incassa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success">
-                            <i class="fas fa-money-bill"></i>
+                        <a href="incassa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Incassa scontrino">
+                            <i class="fas fa-money-bill"></i> Incassa
                         </a>
                         <?php elseif ($scontrino['stato'] === 'incassato'): ?>
-                        <a href="versa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success">
-                            <i class="fas fa-university"></i>
+                        <a href="versa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Versa importo">
+                            <i class="fas fa-university"></i> Versa
                         </a>
                         <?php endif; ?>
                     <?php endif; ?>

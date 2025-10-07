@@ -769,3 +769,31 @@ input[type="text"], input[type="date"], input[type="number"], input[type="passwo
         text-align: center;
     }
 }
+
+/* Stili per pulsanti azioni con testo */
+.btn-sm {
+    white-space: nowrap;
+    margin: 2px;
+}
+
+.btn-sm i {
+    margin-right: 5px;
+}
+
+/* Responsività per pulsanti azioni */
+@media (max-width: 768px) {
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .btn-sm i {
+        margin-right: 3px;
+    }
+}
+
+/* Colonna azioni più larga per contenere i testi */
+td .btn-sm {
+    display: inline-block;
+    margin-bottom: 2px;
+}

@@ -282,37 +282,37 @@ ob_start();
                         </td>
                         <td>
                             <a href="modifica.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Modifica">
-                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-edit"></i> Modifica
                             </a>
                             
                             <?php if ($scontrino['stato'] === 'attivo'): ?>
                             <a href="incassa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Incassa">
-                                <i class="fas fa-money-bill"></i>
+                                <i class="fas fa-money-bill"></i> Incassa
                             </a>
                             <?php endif; ?>
                             
                             <?php if ($scontrino['stato'] === 'incassato'): ?>
                             <a href="versa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Versa">
-                                <i class="fas fa-university"></i>
+                                <i class="fas fa-university"></i> Versa
                             </a>
                             <a href="annulla_incasso.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Annulla Incasso">
-                                <i class="fas fa-undo"></i>
+                                <i class="fas fa-undo"></i> Annulla Incasso
                             </a>
                             <?php endif; ?>
                             
                             <?php if ($scontrino['stato'] === 'versato'): ?>
                             <a href="annulla_versamento.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Annulla Versamento">
-                                <i class="fas fa-undo"></i>
+                                <i class="fas fa-undo"></i> Annulla Versamento
                             </a>
                             <?php endif; ?>
                             
                             <a href="archivia.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-secondary" title="Archivia">
-                                <i class="fas fa-archive"></i>
+                                <i class="fas fa-archive"></i> Archivia
                             </a>
                             
                             <a href="elimina.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-danger" 
                                onclick="return confermaEliminazione('Sei sicuro di voler eliminare questo scontrino?')" title="Elimina">
-                                <i class="fas fa-trash"></i>
+                                <i class="fas fa-trash"></i> Elimina
                             </a>
                         </td>
                     </tr>

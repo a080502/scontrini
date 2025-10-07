@@ -192,7 +192,7 @@ ob_start();
                 
                 <a href="elimina.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-danger" 
                    onclick="return confermaEliminazione('Sei sicuro di voler eliminare definitivamente questo scontrino archiviato?')" title="Elimina">
-                    <i class="fas fa-trash"></i>
+                    <i class="fas fa-trash"></i> Elimina
                 </a>
             </td>
         </tr>
