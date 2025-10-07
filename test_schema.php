@@ -76,12 +76,13 @@ try {
     echo "   - INSERT di test: ";
     
     $test_id = $db->query("
-        INSERT INTO scontrini (numero, data, lordo, da_versare, note, utente_id, filiale_id, stato) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO scontrini (numero, data, lordo, netto, da_versare, note, utente_id, filiale_id, stato) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ", [
         'TEST-' . time(), 
         date('Y-m-d'), 
         100.50, 
+        100.50, // netto uguale a lordo
         50.25, 
         'Test schema alignment', 
         1, 

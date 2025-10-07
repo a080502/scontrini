@@ -86,11 +86,14 @@ if ($_POST) {
         $error = 'L\'importo da versare non può essere maggiore dell\'importo lordo';
     } else {
         try {
+            // Calcola il netto (se non specificato, uguale al lordo)
+            $netto = $lordo; // In futuro potresti implementare una logica per il calcolo delle tasse
+            
             // Inserisci lo scontrino associandolo all'utente e filiale determinati
             $db->query("
-                INSERT INTO scontrini (numero, data, lordo, da_versare, note, utente_id, filiale_id, foto, gps_coords) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ", [$nome, $data, $lordo, $da_versare, $note, $target_user_id, $target_filiale_id, $foto_path, 
+                INSERT INTO scontrini (numero, data, lordo, netto, da_versare, note, utente_id, filiale_id, foto, gps_coords) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ", [$nome, $data, $lordo, $netto, $da_versare, $note, $target_user_id, $target_filiale_id, $foto_path, 
                 $gps_data ? json_encode($gps_data) : null
             ]);
             
