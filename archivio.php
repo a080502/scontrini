@@ -19,8 +19,8 @@ $filters = [
 ];
 
 // Costruisci query con filtri e permessi utente
-$where_conditions = ["s.archiviato = 1"];
-$where_conditions_no_prefix = ["archiviato = 1"]; // Per query senza JOIN
+$where_conditions = ["s.stato = 'archiviato'"];
+$where_conditions_no_prefix = ["stato = 'archiviato'"]; // Per query senza JOIN
 $params = [];
 
 // Applica filtri avanzati usando la nuova funzione
@@ -63,8 +63,8 @@ $stats = $db->fetchOne("
     SELECT 
         COUNT(*) as totale,
         SUM(lordo) as totale_importo,
-        SUM(CASE WHEN incassato = 1 THEN lordo ELSE 0 END) as totale_incassato,
-        SUM(CASE WHEN versato = 1 THEN lordo ELSE 0 END) as totale_versato
+        SUM(CASE WHEN stato IN ('incassato', 'versato') THEN lordo ELSE 0 END) as totale_incassato,
+        SUM(CASE WHEN stato = 'versato' THEN lordo ELSE 0 END) as totale_versato
     FROM scontrini 
     WHERE $where_clause_no_prefix
 ", $params);

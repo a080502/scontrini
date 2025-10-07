@@ -28,7 +28,7 @@ try {
     // Riattiva lo scontrino
     $db->query("
         UPDATE scontrini 
-        SET archiviato = 0, data_archiviazione = NULL 
+        SET stato = 'attivo', data_archiviazione = NULL 
         WHERE id = ?
     ", [$id]);
     

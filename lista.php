@@ -40,16 +40,16 @@ if ($mese) {
 
 switch ($filtro) {
     case 'da_incassare':
-        $where_conditions[] = "s.incassato = 0";
+        $where_conditions[] = "s.stato = 'attivo'";
         break;
     case 'incassati':
-        $where_conditions[] = "s.incassato = 1";
+        $where_conditions[] = "s.stato IN ('incassato', 'versato')";
         break;
     case 'da_versare':
-        $where_conditions[] = "s.incassato = 1 AND s.versato = 0";
+        $where_conditions[] = "s.stato = 'incassato'";
         break;
     case 'versati':
-        $where_conditions[] = "s.versato = 1";
+        $where_conditions[] = "s.stato = 'versato'";
         break;
 }
 
@@ -103,8 +103,8 @@ $stats = $db->fetchOne("
     SELECT 
         COUNT(*) as totale,
         SUM(s.lordo) as totale_importo,
-        SUM(CASE WHEN s.incassato = 1 THEN s.lordo ELSE 0 END) as totale_incassato,
-        SUM(CASE WHEN s.versato = 1 THEN s.lordo ELSE 0 END) as totale_versato
+        SUM(CASE WHEN s.stato IN ('incassato', 'versato') THEN s.lordo ELSE 0 END) as totale_incassato,
+        SUM(CASE WHEN s.stato = 'versato' THEN s.lordo ELSE 0 END) as totale_versato
     FROM scontrini s
     LEFT JOIN utenti u ON s.utente_id = u.id
     LEFT JOIN filiali f ON s.filiale_id = f.id

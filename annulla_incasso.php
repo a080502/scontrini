@@ -19,12 +19,12 @@ if (!$scontrino) {
     Utils::redirect('lista.php');
 }
 
-if (!$scontrino['incassato']) {
+if ($scontrino['stato'] === 'attivo') {
     Utils::setFlashMessage('warning', 'Scontrino non è incassato');
     Utils::redirect('lista.php');
 }
 
-if ($scontrino['versato']) {
+if ($scontrino['stato'] === 'versato') {
     Utils::setFlashMessage('error', 'Non puoi annullare l\'incasso di uno scontrino già versato');
     Utils::redirect('lista.php');
 }
@@ -33,7 +33,7 @@ try {
     // Annulla incasso
     $db->query("
         UPDATE scontrini 
-        SET incassato = 0, data_incasso = NULL 
+        SET stato = 'attivo', data_incasso = NULL 
         WHERE id = ?
     ", [$id]);
     

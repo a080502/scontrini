@@ -28,7 +28,7 @@ try {
     // Archivia lo scontrino
     $db->query("
         UPDATE scontrini 
-        SET archiviato = 1, data_archiviazione = NOW() 
+        SET stato = 'archiviato', data_archiviazione = NOW() 
         WHERE id = ?
     ", [$id]);
     

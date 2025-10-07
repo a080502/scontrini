@@ -28,7 +28,7 @@ try {
     // Annulla versamento
     $db->query("
         UPDATE scontrini 
-        SET versato = 0, data_versamento = NULL 
+        SET stato = 'incassato', data_versamento = NULL 
         WHERE id = ?
     ", [$id]);
     

@@ -37,14 +37,14 @@ if (!empty($advanced_filter_data_with_prefix['where_conditions'])) {
 $stats = $db->fetchOne("
     SELECT 
         COUNT(*) as num_scontrini,
-        COUNT(CASE WHEN incassato = 1 AND archiviato = 0 THEN 1 END) as num_incassati,
-        COUNT(CASE WHEN incassato = 0 AND archiviato = 0 THEN 1 END) as num_da_incassare,
-        COUNT(CASE WHEN archiviato = 1 THEN 1 END) as num_archiviati,
-        SUM(CASE WHEN archiviato = 0 THEN lordo ELSE 0 END) as totale_incassare,
-        SUM(CASE WHEN incassato = 1 AND archiviato = 0 THEN lordo ELSE 0 END) as totale_incassato,
-        SUM(CASE WHEN incassato = 0 AND archiviato = 0 THEN lordo ELSE 0 END) as totale_da_incassare,
+        COUNT(CASE WHEN stato IN ('incassato', 'versato') THEN 1 END) as num_incassati,
+        COUNT(CASE WHEN stato = 'attivo' THEN 1 END) as num_da_incassare,
+        COUNT(CASE WHEN stato = 'archiviato' THEN 1 END) as num_archiviati,
+        SUM(CASE WHEN stato != 'archiviato' THEN lordo ELSE 0 END) as totale_incassare,
+        SUM(CASE WHEN stato IN ('incassato', 'versato') THEN lordo ELSE 0 END) as totale_incassato,
+        SUM(CASE WHEN stato = 'attivo' THEN lordo ELSE 0 END) as totale_da_incassare,
         SUM(CASE WHEN versato = 1 AND archiviato = 0 THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_versato,
-        SUM(CASE WHEN versato = 0 AND incassato = 1 AND archiviato = 0 THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_da_versare
+        SUM(CASE WHEN stato = 'incassato' THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_da_versare
     FROM scontrini 
     WHERE archiviato = 0" . $where_clause, $query_params);
 
@@ -59,12 +59,12 @@ $cassa = $totale_incassato - $totale_versato;
 
 // Ultimi 5 scontrini inseriti con filtro per ruolo
 $ultimi_scontrini = $db->fetchAll("
-    SELECT s.id, s.nome, s.data_scontrino, s.lordo, s.da_versare, s.incassato, s.versato, s.archiviato,
+    SELECT s.id, s.numero, s.data, s.lordo, s.da_versare, s.stato,
            u.nome as utente_nome, f.nome as filiale_nome
     FROM scontrini s
     LEFT JOIN utenti u ON s.utente_id = u.id
     LEFT JOIN filiali f ON s.filiale_id = f.id
-    WHERE s.archiviato = 0" . $where_clause_with_prefix . "
+    WHERE s.stato != 'archiviato'" . $where_clause_with_prefix . "
     ORDER BY s.created_at DESC 
     LIMIT 5
 ", $query_params_with_prefix);
@@ -163,7 +163,7 @@ ob_start();
         </thead>
         <tbody>
             <?php foreach ($ultimi_scontrini as $scontrino): ?>
-            <tr class="<?php echo $scontrino['incassato'] ? 'incassato' : ''; ?>">
+            <tr class="<?php echo in_array($scontrino['stato'], ['incassato', 'versato']) ? 'incassato' : ''; ?>">
                 <td><?php echo htmlspecialchars($scontrino['nome']); ?></td>
                 <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?></td>
                 <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
@@ -175,11 +175,11 @@ ob_start();
                     <?php endif; ?>
                 <?php endif; ?>
                 <td>
-                    <?php if ($scontrino['archiviato']): ?>
+                    <?php if ($scontrino['stato'] === 'archiviato'): ?>
                         <span class="badge" style="background-color: #6c757d;">Archiviato</span>
-                    <?php elseif ($scontrino['versato']): ?>
+                    <?php elseif ($scontrino['stato'] === 'versato'): ?>
                         <span class="badge badge-success">Versato</span>
-                    <?php elseif ($scontrino['incassato']): ?>
+                    <?php elseif ($scontrino['stato'] === 'incassato'): ?>
                         <span class="badge badge-success">Incassato</span>
                     <?php else: ?>
                         <span class="badge badge-warning">Da Incassare</span>
@@ -189,12 +189,12 @@ ob_start();
                     <a href="modifica.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning">
                         <i class="fas fa-edit"></i>
                     </a>
-                    <?php if (!$scontrino['archiviato']): ?>
-                        <?php if (!$scontrino['incassato']): ?>
+                    <?php if ($scontrino['stato'] !== 'archiviato'): ?>
+                        <?php if ($scontrino['stato'] === 'attivo'): ?>
                         <a href="incassa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success">
                             <i class="fas fa-money-bill"></i>
                         </a>
-                        <?php elseif (!$scontrino['versato']): ?>
+                        <?php elseif ($scontrino['stato'] === 'incassato'): ?>
                         <a href="versa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success">
                             <i class="fas fa-university"></i>
                         </a>

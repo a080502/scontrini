@@ -24,7 +24,7 @@ if ($scontrino['archiviato']) {
     Utils::redirect('lista.php');
 }
 
-if ($scontrino['incassato']) {
+if ($scontrino['stato'] === 'incassato' || $scontrino['stato'] === 'versato') {
     Utils::setFlashMessage('warning', 'Scontrino già incassato');
     Utils::redirect('lista.php');
 }
@@ -33,7 +33,7 @@ try {
     // Incassa lo scontrino
     $db->query("
         UPDATE scontrini 
-        SET incassato = 1, data_incasso = NOW() 
+        SET stato = 'incassato', data_incasso = NOW() 
         WHERE id = ?
     ", [$id]);
     
