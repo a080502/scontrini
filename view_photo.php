@@ -1,4 +1,8 @@
 <?php
+// Abilita error reporting per debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Disabilitato per le immagini
+
 require_once 'includes/installation_check.php';
 requireBootstrap();
 require_once 'includes/image_manager.php';
@@ -13,88 +17,92 @@ if (empty($encoded_path)) {
     die('Foto non trovata');
 }
 
-$photo_path = base64_decode($encoded_path);
+try {
+    $photo_path = base64_decode($encoded_path);
 
-// Validazioni di sicurezza
-if (empty($photo_path) || !file_exists($photo_path)) {
-    http_response_code(404);
-    die('Foto non trovata');
-}
-
-// Verifica che il percorso sia nella directory uploads
-$real_path = realpath($photo_path);
-$upload_dir = realpath('uploads/scontrini');
-if (!$real_path || !$upload_dir || strpos($real_path, $upload_dir) !== 0) {
-    http_response_code(403);
-    die('Accesso non autorizzato');
-}
-
-// Verifica che sia un'immagine valida
-if (!ImageManager::isValidImage($photo_path)) {
-    http_response_code(404);
-    die('File non valido');
-}
-
-// Ottieni informazioni sull'immagine
-$image_info = getimagesize($photo_path);
-if ($image_info === false) {
-    http_response_code(404);
-    die('Immagine non valida');
-}
-
-// Estrae l'ID dello scontrino dal nome del file per verificare i permessi
-$filename = basename($photo_path);
-if (preg_match('/scontrino_(\d+)_/', $filename, $matches)) {
-    $scontrino_id = (int)$matches[1];
-    
-    // Verifica che l'utente abbia accesso a questo scontrino
-    $db = Database::getInstance();
-    $current_user = Auth::getCurrentUser();
-    
-    // Query per verificare l'accesso allo scontrino
-    if (Auth::isAdmin()) {
-        // Admin può vedere tutto
-        $scontrino = $db->fetchOne("SELECT id FROM scontrini WHERE id = ?", [$scontrino_id]);
-    } elseif (Auth::isResponsabile()) {
-        // Responsabile può vedere scontrini della sua filiale
-        $scontrino = $db->fetchOne("
-            SELECT id FROM scontrini 
-            WHERE id = ? AND filiale_id = ?
-        ", [$scontrino_id, $current_user['filiale_id']]);
-    } else {
-        // Utente normale può vedere solo i suoi scontrini
-        $scontrino = $db->fetchOne("
-            SELECT id FROM scontrini 
-            WHERE id = ? AND utente_id = ?
-        ", [$scontrino_id, $current_user['id']]);
+    // Validazioni di sicurezza
+    if (empty($photo_path) || !file_exists($photo_path)) {
+        http_response_code(404);
+        die('Foto non trovata');
     }
-    
-    if (!$scontrino) {
+
+    // Verifica che il percorso sia nella directory uploads
+    $real_path = realpath($photo_path);
+    $upload_dir = realpath('uploads/scontrini');
+    if (!$real_path || !$upload_dir || strpos($real_path, $upload_dir) !== 0) {
         http_response_code(403);
-        die('Non hai i permessi per vedere questa foto');
+        die('Accesso non autorizzato');
     }
-}
 
-// Imposta gli header per l'immagine
-header('Content-Type: ' . $image_info['mime']);
-header('Content-Length: ' . filesize($photo_path));
-header('Cache-Control: private, max-age=3600');
-header('Last-Modified: ' . gmdate('D, d M Y H:i:s', filemtime($photo_path)) . ' GMT');
+    // Verifica che sia un'immagine valida
+    if (!ImageManager::isValidImage($photo_path)) {
+        http_response_code(404);
+        die('File non valido');
+    }
 
-// Se è richiesta una miniatura
-if (isset($_GET['thumbnail']) && $_GET['thumbnail'] == '1') {
-    // Genera miniatura al volo
-    $thumbnail = generateThumbnail($photo_path, $image_info['mime']);
-    if ($thumbnail) {
-        echo $thumbnail;
+    // Ottieni informazioni sull'immagine
+    $image_info = getimagesize($photo_path);
+    if ($image_info === false) {
+        http_response_code(404);
+        die('Immagine non valida');
+    }
+
+    // Estrae l'ID dello scontrino dal nome del file per verificare i permessi
+    $filename = basename($photo_path);
+    if (preg_match('/scontrino_(\d+)_/', $filename, $matches)) {
+        $scontrino_id = (int)$matches[1];
+        
+        // Verifica che l'utente abbia accesso a questo scontrino
+        $db = Database::getInstance();
+        $current_user = Auth::getCurrentUser();
+        
+        // Query per verificare l'accesso allo scontrino
+        if (Auth::isAdmin()) {
+            // Admin può vedere tutto
+            $scontrino = $db->fetchOne("SELECT id FROM scontrini WHERE id = ?", [$scontrino_id]);
+        } elseif (Auth::isResponsabile()) {
+            // Responsabile può vedere scontrini della sua filiale
+            $scontrino = $db->fetchOne("
+                SELECT id FROM scontrini 
+                WHERE id = ? AND filiale_id = ?
+            ", [$scontrino_id, $current_user['filiale_id']]);
+        } else {
+            // Utente normale può vedere solo i suoi scontrini
+            $scontrino = $db->fetchOne("
+                SELECT id FROM scontrini 
+                WHERE id = ? AND utente_id = ?
+            ", [$scontrino_id, $current_user['id']]);
+        }
+        
+        if (!$scontrino) {
+            http_response_code(403);
+            die('Non hai i permessi per vedere questa foto');
+        }
+    }
+
+    // Imposta gli header per l'immagine
+    header('Content-Type: ' . $image_info['mime']);
+    header('Content-Length: ' . filesize($photo_path));
+    header('Cache-Control: private, max-age=3600');
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s', filemtime($photo_path)) . ' GMT');
+
+    // Se è richiesta una miniatura, per ora serviamo l'originale
+    // TODO: Implementare generazione thumbnail sicura
+    if (isset($_GET['thumbnail']) && $_GET['thumbnail'] == '1') {
+        // Per ora serviamo l'immagine originale
+        readfile($photo_path);
     } else {
-        // Fallback: servi l'immagine originale
+        // Servi l'immagine originale
         readfile($photo_path);
     }
-} else {
-    // Servi l'immagine originale
-    readfile($photo_path);
+
+} catch (Exception $e) {
+    // Log error but don't show details to user
+    error_log("Error in view_photo.php: " . $e->getMessage());
+    http_response_code(500);
+    die('Errore interno del server');
 }
+?>
 
 /**
  * Genera una miniatura dell'immagine
