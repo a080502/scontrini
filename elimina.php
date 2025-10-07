@@ -32,19 +32,19 @@ if ($scontrino['archiviato']) {
 if ($_POST && isset($_POST['conferma'])) {
     try {
         // Elimina il file foto se presente
-        if (!empty($scontrino['foto_scontrino'])) {
-            $foto_eliminata = ImageManager::deleteScontrinoPhoto($scontrino['foto_scontrino']);
+        if (!empty($scontrino['foto'])) {
+            $foto_eliminata = ImageManager::deleteScontrinoPhoto($scontrino['foto']);
             if (!$foto_eliminata) {
                 // Log dell'errore ma non bloccare l'eliminazione dello scontrino
-                error_log("Impossibile eliminare il file foto: " . $scontrino['foto_scontrino']);
+                error_log("Impossibile eliminare il file foto: " . $scontrino['foto']);
             }
         }
         
         // Elimina lo scontrino dal database
         $db->query("DELETE FROM scontrini WHERE id = ?", [$id]);
         
-        $message = "Scontrino '{$scontrino['nome']}' eliminato con successo!";
-        if (!empty($scontrino['foto_scontrino'])) {
+        $message = "Scontrino '{$scontrino['numero']}' eliminato con successo!";
+        if (!empty($scontrino['foto'])) {
             $message .= " La foto associata è stata rimossa.";
         }
         
@@ -87,11 +87,11 @@ ob_start();
     <p><strong>Note:</strong> <?php echo htmlspecialchars($scontrino['note']); ?></p>
     <?php endif; ?>
     
-    <?php if (!empty($scontrino['foto_scontrino']) && file_exists($scontrino['foto_scontrino'])): ?>
+    <?php if (!empty($scontrino['foto']) && file_exists($scontrino['foto'])): ?>
     <div style="margin-top: 15px;">
         <p><strong>Foto allegata:</strong></p>
         <div style="text-align: center;">
-            <img src="<?php echo ImageManager::getPhotoUrl($scontrino['foto_scontrino']) . '&thumbnail=1'; ?>" 
+            <img src="<?php echo ImageManager::getPhotoUrl($scontrino['foto']) . '&thumbnail=1'; ?>" 
                  style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;"
                  alt="Foto scontrino da eliminare">
         </div>

@@ -5,6 +5,7 @@ require_once 'includes/image_manager.php';
 Auth::requireLogin();
 
 $db = Database::getInstance();
+$current_user = Auth::getCurrentUser();
 $id = (int)($_GET['id'] ?? 0);
 
 if ($id <= 0) {
@@ -21,7 +22,7 @@ if (!$scontrino) {
 }
 
 // Verifica che lo scontrino non sia archiviato
-if ($scontrino['archiviato']) {
+if ($scontrino['stato'] === 'archiviato') {
     Utils::setFlashMessage('error', 'Non puoi modificare uno scontrino archiviato');
     Utils::redirect('archivio.php');
 }
@@ -40,7 +41,7 @@ if ($_POST) {
     
     // Gestione upload nuova foto
     $foto_uploaded = false;
-    if (isset($_FILES['foto_scontrino']) && $_FILES['foto_scontrino']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
         $foto_uploaded = true;
     }
     
@@ -68,16 +69,16 @@ if ($_POST) {
             $foto_size_update = '';
             
             // Se richiesta rimozione foto esistente
-            if ($rimuovi_foto && !empty($scontrino['foto_scontrino'])) {
-                ImageManager::deleteScontrinoPhoto($scontrino['foto_scontrino']);
-                $foto_path_update = ', foto_scontrino = NULL, foto_mime_type = NULL, foto_size = NULL';
+            if ($rimuovi_foto && !empty($scontrino['foto'])) {
+                ImageManager::deleteScontrinoPhoto($scontrino['foto']);
+                $foto_path_update = ', foto = NULL';
             }
             
             // Se caricata nuova foto
             if ($foto_uploaded) {
                 // Rimuovi foto esistente se presente
-                if (!empty($scontrino['foto_scontrino'])) {
-                    ImageManager::deleteScontrinoPhoto($scontrino['foto_scontrino']);
+                if (!empty($scontrino['foto'])) {
+                    ImageManager::deleteScontrinoPhoto($scontrino['foto']);
                 }
                 
                 // Prepara info utente per nome file
@@ -96,11 +97,11 @@ if ($_POST) {
                     ];
                 }
                 
-                $upload_result = ImageManager::saveScontrinoPhoto($_FILES['foto_scontrino'], $id, $user_info, $gps_data);
+                $upload_result = ImageManager::saveScontrinoPhoto($_FILES['foto'], $id, $user_info, $gps_data);
                 
                 if ($upload_result['success']) {
-                    $foto_path_update = ', foto_scontrino = ?, foto_mime_type = ?, foto_size = ?';
-                    $additional_params = [$upload_result['path'], $upload_result['mime_type'], $upload_result['size']];
+                    $foto_path_update = ', foto = ?';
+                    $additional_params = [$upload_result['path']];
                 } else {
                     $error = 'Errore durante il caricamento della foto: ' . $upload_result['error'];
                 }
@@ -213,12 +214,12 @@ ob_start();
     <div class="form-group">
         <label><i class="fas fa-camera"></i> Foto Scontrino</label>
         
-        <?php if (!empty($scontrino['foto_scontrino']) && file_exists($scontrino['foto_scontrino'])): ?>
+        <?php if (!empty($scontrino['foto']) && file_exists($scontrino['foto'])): ?>
         <div class="foto-attuale" id="foto-attuale">
             <p><strong>Foto attuale:</strong></p>
             <div style="margin-bottom: 15px;">
-                <a href="<?php echo ImageManager::getPhotoUrl($scontrino['foto_scontrino']); ?>" target="_blank">
-                    <img src="<?php echo ImageManager::getPhotoUrl($scontrino['foto_scontrino']) . '&thumbnail=1'; ?>" 
+                <a href="<?php echo ImageManager::getPhotoUrl($scontrino['foto']); ?>" target="_blank">
+                    <img src="<?php echo ImageManager::getPhotoUrl($scontrino['foto']) . '&thumbnail=1'; ?>" 
                          style="max-width: 200px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px;"
                          alt="Foto scontrino attuale">
                 </a>
@@ -233,14 +234,14 @@ ob_start();
         <?php endif; ?>
         
         <div style="margin-top: 15px;">
-            <label for="foto_scontrino">
-                <?php if (!empty($scontrino['foto_scontrino'])): ?>
+            <label for="foto">
+                <?php if (!empty($scontrino['foto'])): ?>
                     <i class="fas fa-sync-alt"></i> Sostituisci con nuova foto
                 <?php else: ?>
                     <i class="fas fa-plus"></i> Aggiungi foto
                 <?php endif; ?>
             </label>
-            <input type="file" id="foto_scontrino" name="foto_scontrino" 
+            <input type="file" id="foto" name="foto" 
                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                    class="form-control">
             <small class="text-muted">
@@ -277,7 +278,7 @@ ob_start();
 
 <script>
 // Gestione anteprima foto
-document.getElementById('foto_scontrino').addEventListener('change', function(e) {
+document.getElementById('foto').addEventListener('change', function(e) {
     const file = e.target.files[0];
     const preview = document.getElementById('foto-preview');
     const previewImg = document.getElementById('preview-img');
@@ -404,14 +405,14 @@ function showGpsMessage(message, type) {
 }
 
 function clearFotoPreview() {
-    document.getElementById('foto_scontrino').value = '';
+    document.getElementById('foto').value = '';
     document.getElementById('foto-preview').style.display = 'none';
 }
 
 // Gestione checkbox rimozione foto
 document.getElementById('rimuovi_foto')?.addEventListener('change', function() {
     const fotoAttuale = document.getElementById('foto-attuale');
-    const fotoInput = document.getElementById('foto_scontrino');
+    const fotoInput = document.getElementById('foto');
     
     if (this.checked) {
         fotoAttuale.style.opacity = '0.5';
