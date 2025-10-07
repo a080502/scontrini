@@ -46,5 +46,3 @@ function requireBootstrap() {
     
     return $installation_completed;
 }
-?>
-?>
