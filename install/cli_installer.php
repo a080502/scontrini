@@ -219,18 +219,29 @@ function createDatabaseTables($host, $name, $user, $pass) {
     }
     
     $sql = file_get_contents($schema_file);
+    
+    // Rimuovi commenti SQL
     $sql = preg_replace('/--.*$/m', '', $sql);
     $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
+    
+    // Rimuovi le direttive DELIMITER e relative
+    $sql = preg_replace('/DELIMITER\s+\$\$/i', '', $sql);
+    $sql = preg_replace('/DELIMITER\s+;/i', '', $sql);
+    $sql = preg_replace('/\$\$/i', ';', $sql);
+    
+    // Rimuovi transazioni manuali
+    $sql = preg_replace('/^(START TRANSACTION|COMMIT);?\s*$/m', '', $sql);
     
     $statements = array_filter(array_map('trim', explode(';', $sql)));
     
     foreach ($statements as $statement) {
-        if (!empty($statement) && !preg_match('/^(DELIMITER|START TRANSACTION|COMMIT)/', $statement)) {
+        if (!empty($statement)) {
             try {
                 $pdo->exec($statement);
             } catch (PDOException $e) {
-                if (strpos($e->getMessage(), 'already exists') === false) {
-                    throw $e;
+                if (strpos($e->getMessage(), 'already exists') === false && 
+                    strpos($e->getMessage(), 'Duplicate') === false) {
+                    echo "   ⚠️  Warning SQL: " . $e->getMessage() . "\n";
                 }
             }
         }

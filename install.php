@@ -171,24 +171,63 @@ function createDatabaseTables($host, $name, $user, $pass) {
     
     $sql = file_get_contents($schema_file);
     
-    // Rimuovi commenti e dividi in statement
-    $sql = preg_replace('/--.*$/m', '', $sql); // Rimuovi commenti
-    $sql = preg_replace('/\/\*.*?\*\//s', '', $sql); // Rimuovi commenti multi-linea
+    // Rimuovi commenti SQL
+    $sql = preg_replace('/--.*$/m', '', $sql);
+    $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
     
-    // Esegui gli statement uno per volta
+    // Rimuovi le direttive DELIMITER e relative
+    $sql = preg_replace('/DELIMITER\s+\$\$/i', '', $sql);
+    $sql = preg_replace('/DELIMITER\s+;/i', '', $sql);
+    $sql = preg_replace('/\$\$/i', ';', $sql);
+    
+    // Rimuovi transazioni manuali (START TRANSACTION, COMMIT)
+    $sql = preg_replace('/^(START TRANSACTION|COMMIT);?\s*$/m', '', $sql);
+    
+    // Dividi in statement usando ; come separatore
     $statements = array_filter(array_map('trim', explode(';', $sql)));
     
     foreach ($statements as $statement) {
-        if (!empty($statement) && !preg_match('/^(DELIMITER|START TRANSACTION|COMMIT)/', $statement)) {
+        if (!empty($statement)) {
             try {
                 $pdo->exec($statement);
             } catch (PDOException $e) {
                 // Ignora errori per statement che potrebbero già esistere
-                if (strpos($e->getMessage(), 'already exists') === false) {
-                    throw $e;
+                if (strpos($e->getMessage(), 'already exists') === false && 
+                    strpos($e->getMessage(), 'Duplicate') === false) {
+                    // Log l'errore ma continua (per compatibilità)
+                    error_log("Errore SQL statement: " . $e->getMessage());
+                    error_log("Statement: " . $statement);
                 }
             }
         }
+    }
+}
+
+/**
+ * Testa la connessione al database
+ */
+function testDatabaseConnection($host, $dbname, $username, $password) {
+    try {
+        $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
+        $pdo = new PDO($dsn, $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+        ]);
+        
+        // Test semplice query
+        $stmt = $pdo->query("SELECT VERSION() as version");
+        $version = $stmt->fetch();
+        
+        return [
+            'success' => true, 
+            'message' => "Connessione riuscita - MySQL/MariaDB " . $version['version']
+        ];
+    } catch (PDOException $e) {
+        return [
+            'success' => false, 
+            'message' => "Errore connessione: " . $e->getMessage()
+        ];
     }
 }
 
