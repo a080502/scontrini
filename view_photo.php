@@ -1,5 +1,6 @@
 <?php
-require_once 'includes/bootstrap.php';
+require_once 'includes/installation_check.php';
+requireBootstrap();
 require_once 'includes/image_manager.php';
 
 // Solo utenti autenticati possono vedere le foto

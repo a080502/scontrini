@@ -1,5 +1,6 @@
 <?php
-require_once 'includes/bootstrap.php';
+require_once 'includes/installation_check.php';
+requireBootstrap();
 
 Auth::requireAdminOrResponsabile();
 

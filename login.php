@@ -1,10 +1,13 @@
 <?php
+require_once 'includes/installation_check.php';
+
 // Verifica se l'installazione è stata effettuata
-$installation_completed = file_exists('installation.lock');
+$installation_completed = checkInstallationStatus();
 
 // Se l'installazione non è stata effettuata, mostra solo il pulsante di installazione
 if (!$installation_completed) {
     // Non includere bootstrap.php se non è ancora installato
+    require_once 'includes/utils.php';
     $page_title = 'Sistema non installato';
     $show_install_button = true;
 } else {
