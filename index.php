@@ -43,10 +43,10 @@ $stats = $db->fetchOne("
         SUM(CASE WHEN stato != 'archiviato' THEN lordo ELSE 0 END) as totale_incassare,
         SUM(CASE WHEN stato IN ('incassato', 'versato') THEN lordo ELSE 0 END) as totale_incassato,
         SUM(CASE WHEN stato = 'attivo' THEN lordo ELSE 0 END) as totale_da_incassare,
-        SUM(CASE WHEN versato = 1 AND archiviato = 0 THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_versato,
+        SUM(CASE WHEN stato = 'versato' THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_versato,
         SUM(CASE WHEN stato = 'incassato' THEN COALESCE(da_versare, lordo) ELSE 0 END) as totale_da_versare
     FROM scontrini 
-    WHERE archiviato = 0" . $where_clause, $query_params);
+    WHERE stato != 'archiviato'" . $where_clause, $query_params);
 
 // Calcoli finanziari
 $totale_incassare = $stats['totale_incassare'] ?? 0;

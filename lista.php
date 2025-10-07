@@ -219,7 +219,7 @@ ob_start();
             $totale_gruppo_lordo += $scontrino['lordo'];
             $totale_gruppo_da_versare += $scontrino['da_versare'] ?? $scontrino['lordo'];
             if ($scontrino['incassato']) $count_incassati++;
-            if ($scontrino['versato']) $count_versati++;
+            if ($scontrino['stato'] === 'versato') $count_versati++;
         }
         ?>
         
@@ -264,9 +264,9 @@ ob_start();
                         <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
                         <td class="euro"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
                         <td>
-                            <?php if ($scontrino['versato']): ?>
+                            <?php if ($scontrino['stato'] === 'versato'): ?>
                                 <span class="badge badge-success">Versato</span>
-                            <?php elseif ($scontrino['incassato']): ?>
+                            <?php elseif ($scontrino['stato'] === 'incassato'): ?>
                                 <span class="badge badge-success">Incassato</span>
                             <?php else: ?>
                                 <span class="badge badge-warning">Da Incassare</span>
@@ -291,7 +291,7 @@ ob_start();
                             </a>
                             <?php endif; ?>
                             
-                            <?php if ($scontrino['incassato'] && !$scontrino['versato']): ?>
+                            <?php if ($scontrino['stato'] === 'incassato'): ?>
                             <a href="versa.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-success" title="Versa">
                                 <i class="fas fa-university"></i>
                             </a>
@@ -300,7 +300,7 @@ ob_start();
                             </a>
                             <?php endif; ?>
                             
-                            <?php if ($scontrino['versato']): ?>
+                            <?php if ($scontrino['stato'] === 'versato'): ?>
                             <a href="annulla_versamento.php?id=<?php echo $scontrino['id']; ?>" class="btn btn-sm btn-warning" title="Annulla Versamento">
                                 <i class="fas fa-undo"></i>
                             </a>

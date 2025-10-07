@@ -19,7 +19,7 @@ if (!$scontrino) {
     Utils::redirect('lista.php');
 }
 
-if (!$scontrino['versato']) {
+if ($scontrino['stato'] !== 'versato') {
     Utils::setFlashMessage('warning', 'Scontrino non è versato');
     Utils::redirect('lista.php');
 }

@@ -167,7 +167,7 @@ ob_start();
             <td class="euro"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
             <td>
                 <span class="badge" style="background-color: #6c757d;">Archiviato</span>
-                <?php if ($scontrino['versato']): ?>
+                <?php if ($scontrino['stato'] === 'versato'): ?>
                     <span class="badge badge-success">Versato</span>
                 <?php elseif ($scontrino['incassato']): ?>
                     <span class="badge badge-success">Incassato</span>
