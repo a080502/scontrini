@@ -1,53 +1,108 @@
-# Gestione Scontrini Fiscali - Versione PHP
+# 🧾 Sistema Gestione Scontrini Fiscali
 
-Applicazione web per la gestione degli scontrini fiscali convertita da Python Flask a PHP per compatibilità con server XAMPP.
+**Versione 2.1.0** - Applicazione web professionale per la gestione completa degli scontrini fiscali con sistema di installazione automatica.
 
-## Caratteristiche
+## ✨ Caratteristiche Principali
 
-- **Dashboard completa** con statistiche e riepilogo finanziario
-- **Gestione scontrini** con stati: da incassare, incassato, versato, archiviato
-- **Raggruppamento per nome** - Gli scontrini nella lista sono raggruppati per nome con totali per ogni gruppo
-- **Sistema di autenticazione** con gestione utenti
-- **Archivio** per scontrini completati
-- **Timeline attività** per monitorare le operazioni
-- **Interfaccia responsive** identica al progetto originale
-- **Autocomplete** per nomi scontrini frequenti
+- **🚀 Installazione Automatica**: Processo guidato in 5 step per deployment immediato
+- **📊 Dashboard Completa**: Statistiche in tempo reale e riepilogo finanziario
+- **🔄 Gestione Stati**: da incassare → incassato → versato → archiviato
+- **👥 Multi-Utente**: Sistema di autenticazione con ruoli amministratore/utente
+- **🏢 Gestione Filiali**: Organizzazione per sedi aziendali
+- **📸 Foto Scontrini**: Upload e gestione immagini con geolocalizzazione GPS
+- **📱 Mobile Ready**: Interfaccia responsive ottimizzata per tutti i dispositivi
+- **🗂️ Archivio Intelligente**: Organizzazione automatica scontrini completati
+- **⚡ Performance**: Query ottimizzate e cache intelligente
 
-### Nuove Funzionalità (v2.1)
+### 🆕 Novità v2.1.0 - Sistema di Installazione Automatica
 
-- **Lista scontrini raggruppata**: Gli scontrini sono ora organizzati per nome con:
-  - Ordinamento alfabetico per nome
-  - All'interno di ogni gruppo, ordinamento per data (più recenti primi)
-  - Totali automatici per ogni gruppo (importo lordo, da versare, stato incassi/versamenti)
-  - Design migliorato con header colorato per ogni gruppo
-  - Visualizzazione ottimizzata per desktop e mobile
+- **🔧 Installer Web**: Processo guidato con interfaccia Bootstrap 5
+- **⚙️ Installer CLI**: Automatizzazione completa da linea di comando  
+- **🔍 Verifica Requisiti**: Controllo automatico dipendenze di sistema
+- **🗄️ Setup Database**: Configurazione automatica MySQL e schema
+- **👤 Primo Utente**: Creazione guidata account amministratore
+- **📊 Dati di Esempio**: 3 filiali e 100 scontrini per test immediato
+- **🔒 Protezione**: File di lock anti-reinstallazione
 
-## Requisiti
+## 🚀 Installazione Rapida
 
-- **XAMPP** (o Apache + MySQL + PHP)
-- **PHP 7.4+** con estensioni PDO e MySQL
-- **MySQL 5.7+** o **MariaDB 10.2+**
-- Browser moderno per l'interfaccia web
+### Opzione A: Installazione Web (Raccomandato)
 
-## Installazione su XAMPP
+1. **Estrai** i file nella directory del server web
+2. **Apri** il browser e vai al sistema
+3. **Clicca** "Avvia Installazione Sistema"  
+4. **Segui** il processo guidato in 5 step
 
-### 1. Preparazione
+### Opzione B: Installazione CLI
 
-1. Scarica e installa [XAMPP](https://www.apachefriends.org/download.html)
-2. Avvia i servizi **Apache** e **MySQL** dal pannello di controllo XAMPP
-3. Copia tutti i file di questo progetto nella cartella `htdocs/scontrini/` di XAMPP
-
-### 2. Risoluzione Problemi .htaccess
-
-Se ricevi errori come `<Directory not allowed here`, segui questi passi:
-
-**Opzione A - File .htaccess Semplificato:**
 ```bash
-# Rinomina il file attuale
-mv .htaccess .htaccess-backup
-# Usa la versione semplificata
-mv .htaccess-simple .htaccess
+php install/cli_installer.php
 ```
+
+### Opzione C: Installazione Manuale XAMPP
+
+1. **Scarica** [XAMPP](https://www.apachefriends.org/download.html)
+2. **Avvia** Apache e MySQL
+3. **Copia** i file in `htdocs/scontrini/`
+4. **Vai** a `http://localhost/scontrini/`
+5. **Segui** l'installazione automatica
+
+## 🔧 Requisiti di Sistema
+
+### Minimi
+- **PHP**: >= 7.4 
+- **MySQL**: >= 5.7 o MariaDB >= 10.2
+- **Estensioni PHP**: PDO, PDO_MySQL, GD, mbstring
+- **Spazio**: 100MB per installazione base
+- **Browser**: Chrome, Firefox, Safari, Edge moderni
+
+### Raccomandati  
+- **PHP**: >= 8.0
+- **MySQL**: >= 8.0
+- **RAM**: 512MB per il processo PHP
+- **SSL/HTTPS**: Per ambiente di produzione
+
+## 📱 Funzionalità Avanzate
+
+### 🔄 Gestione Completa Workflow
+```
+Nuovo Scontrino → Da Incassare → Incassato → Versato → Archiviato
+                     ↓              ↓         ↓         ↓
+                  Dashboard      Controllo  Versamento Archivio
+```
+
+### 📊 Dashboard Intelligente
+- **Statistiche Real-time**: Totali per stato, periodo, filiale
+- **Grafici Dinamici**: Andamenti temporali e distribuzioni
+- **Alert Automatici**: Notifiche per scadenze e anomalie
+- **Quick Actions**: Azioni rapide sui dati più recenti
+
+### 🏢 Gestione Multi-Filiale
+- **Organizzazione Gerarchica**: Filiali, responsabili, utenti
+- **Reporting Separato**: Statistiche per singola filiale
+- **Permessi Granulari**: Accesso limitato per filiale
+- **Consolidamento**: Vista unificata per amministratori
+
+### 📸 Sistema Foto e GPS
+- **Upload Intelligente**: Ridimensionamento automatico immagini
+- **Geolocalizzazione**: Coordinate GPS automatiche su mobile
+- **Nomenclatura Avanzata**: File con timestamp, utente e posizione
+- **Sicurezza**: Controllo accessi e validazione formati
+
+## 🛠️ Strumenti Inclusi
+
+### 🧪 Test e Verifica
+```bash
+php install/test_installation.php    # Verifica installazione
+php install/backup.php              # Backup pre-installazione
+```
+
+### 📚 Documentazione
+- **`install/README.md`**: Guida utente installazione
+- **`install/INSTALLATION_README.md`**: Documentazione tecnica
+- **`RELEASE_NOTES_v2.1.0.md`**: Changelog dettagliato
+
+## 🔒 Sicurezza
 
 **Opzione B - Disabilita .htaccess temporaneamente:**
 ```bash
