@@ -778,6 +778,7 @@ input[type="text"], input[type="date"], input[type="number"], input[type="passwo
 
 .btn-sm i {
     margin-right: 5px;
+    font-size: 0.512em; /* Ridotte ulteriormente del 20% (da 0.64em a 0.512em) */
 }
 
 /* Responsività per pulsanti azioni */
@@ -789,6 +790,7 @@ input[type="text"], input[type="date"], input[type="number"], input[type="passwo
     
     .btn-sm i {
         margin-right: 3px;
+        font-size: 0.48em; /* Icone ancora più piccole su mobile */
     }
 }
 
