@@ -32,7 +32,7 @@ try {
         WHERE id = ?
     ", [$id]);
     
-    Utils::setFlashMessage('success', "Versamento di '{$scontrino['nome']}' annullato con successo!");
+    Utils::setFlashMessage('success', "Versamento di '{$scontrino['numero']}' annullato con successo!");
     
 } catch (Exception $e) {
     Utils::setFlashMessage('error', 'Errore durante l\'annullamento: ' . $e->getMessage());

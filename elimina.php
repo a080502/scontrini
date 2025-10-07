@@ -23,7 +23,7 @@ if (!$scontrino) {
 // Verifica che lo scontrino non sia archiviato (opzionale - potremmo voler permettere l'eliminazione)
 // Per ora commentiamo questo controllo per permettere eliminazione anche di scontrini archiviati
 /*
-if ($scontrino['archiviato']) {
+if ($scontrino['stato'] === 'archiviato') {
     Utils::setFlashMessage('error', 'Non puoi eliminare uno scontrino archiviato. Prima riattivalo.');
     Utils::redirect('archivio.php');
 }
@@ -69,7 +69,7 @@ ob_start();
 </div>
 
 <div class="card">
-    <h4><?php echo htmlspecialchars($scontrino['nome']); ?></h4>
+    <h4><?php echo htmlspecialchars($scontrino['numero']); ?></h4>
     <p><strong>Data:</strong> <?php echo Utils::formatDate($scontrino['data']); ?></p>
     <p><strong>Importo:</strong> <?php echo Utils::formatCurrency($scontrino['lordo']); ?></p>
     <p><strong>Stato:</strong>

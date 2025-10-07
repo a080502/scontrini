@@ -157,7 +157,7 @@ ob_start();
         <?php foreach ($scontrini as $scontrino): ?>
         <tr>
             <td>
-                <?php echo htmlspecialchars($scontrino['nome']); ?>
+                <?php echo htmlspecialchars($scontrino['numero']); ?>
                 <?php if ($scontrino['note']): ?>
                 <br><small class="text-muted"><?php echo htmlspecialchars($scontrino['note']); ?></small>
                 <?php endif; ?>

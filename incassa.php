@@ -19,7 +19,7 @@ if (!$scontrino) {
     Utils::redirect('lista.php');
 }
 
-if ($scontrino['archiviato']) {
+if ($scontrino['stato'] === 'archiviato') {
     Utils::setFlashMessage('error', 'Non puoi incassare uno scontrino archiviato');
     Utils::redirect('lista.php');
 }
@@ -37,7 +37,7 @@ try {
         WHERE id = ?
     ", [$id]);
     
-    Utils::setFlashMessage('success', "Scontrino '{$scontrino['nome']}' incassato con successo!");
+    Utils::setFlashMessage('success', "Scontrino '{$scontrino['numero']}' incassato con successo!");
     
 } catch (Exception $e) {
     Utils::setFlashMessage('error', 'Errore durante l\'incasso: ' . $e->getMessage());

@@ -217,7 +217,7 @@ ob_start();
                     <?php endif; ?>
                 </div>
                 <div>
-                    <?php if (!$evento['scontrino']['archiviato']): ?>
+                    <?php if ($evento['scontrino']['stato'] !== 'archiviato'): ?>
                     <a href="modifica.php?id=<?php echo $evento['scontrino']['id']; ?>" class="btn btn-sm btn-warning">
                         <i class="fas fa-edit"></i> Modifica
                     </a>

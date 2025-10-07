@@ -19,7 +19,7 @@ if (!$scontrino) {
     Utils::redirect('lista.php');
 }
 
-if ($scontrino['archiviato']) {
+if ($scontrino['stato'] === 'archiviato') {
     Utils::setFlashMessage('error', 'Non puoi versare uno scontrino archiviato');
     Utils::redirect('lista.php');
 }
@@ -42,7 +42,7 @@ try {
         WHERE id = ?
     ", [$id]);
     
-    Utils::setFlashMessage('success', "Scontrino '{$scontrino['nome']}' versato con successo!");
+    Utils::setFlashMessage('success', "Scontrino '{$scontrino['numero']}' versato con successo!");
     
 } catch (Exception $e) {
     Utils::setFlashMessage('error', 'Errore durante il versamento: ' . $e->getMessage());

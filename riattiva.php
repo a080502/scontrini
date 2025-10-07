@@ -19,7 +19,7 @@ if (!$scontrino) {
     Utils::redirect('archivio.php');
 }
 
-if (!$scontrino['archiviato']) {
+if ($scontrino['stato'] !== 'archiviato') {
     Utils::setFlashMessage('warning', 'Scontrino non è archiviato');
     Utils::redirect('lista.php');
 }
@@ -32,7 +32,7 @@ try {
         WHERE id = ?
     ", [$id]);
     
-    Utils::setFlashMessage('success', "Scontrino '{$scontrino['nome']}' riattivato con successo!");
+    Utils::setFlashMessage('success', "Scontrino '{$scontrino['numero']}' riattivato con successo!");
     
 } catch (Exception $e) {
     Utils::setFlashMessage('error', 'Errore durante la riattivazione: ' . $e->getMessage());
