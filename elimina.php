@@ -70,14 +70,14 @@ ob_start();
 
 <div class="card">
     <h4><?php echo htmlspecialchars($scontrino['nome']); ?></h4>
-    <p><strong>Data:</strong> <?php echo Utils::formatDate($scontrino['data_scontrino']); ?></p>
+    <p><strong>Data:</strong> <?php echo Utils::formatDate($scontrino['data']); ?></p>
     <p><strong>Importo:</strong> <?php echo Utils::formatCurrency($scontrino['lordo']); ?></p>
     <p><strong>Stato:</strong>
-        <?php if ($scontrino['archiviato']): ?>
+        <?php if ($scontrino['stato'] === 'archiviato'): ?>
             <span class="badge" style="background-color: #6c757d;">Archiviato</span>
-        <?php elseif ($scontrino['versato']): ?>
+        <?php elseif ($scontrino['stato'] === 'versato'): ?>
             <span class="badge badge-success">Versato</span>
-        <?php elseif ($scontrino['incassato']): ?>
+        <?php elseif ($scontrino['stato'] === 'incassato'): ?>
             <span class="badge badge-success">Incassato</span>
         <?php else: ?>
             <span class="badge badge-warning">Da Incassare</span>

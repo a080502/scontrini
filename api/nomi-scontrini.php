@@ -67,12 +67,12 @@ try {
         // Recupera i 10 nomi più utilizzati
         $nomi = $db->fetchAll("
             SELECT 
-                nome,
+                numero as nome,
                 COUNT(*) as count_usage,
-                MAX(data_scontrino) as last_used
+                MAX(data) as last_used
             FROM scontrini 
             WHERE {$where_clause}
-            GROUP BY nome 
+            GROUP BY numero 
             ORDER BY count_usage DESC, last_used DESC
             LIMIT 10
         ", $params);
@@ -101,7 +101,7 @@ try {
         }
         
         // Aggiungi filtro di ricerca
-        $where_conditions[] = "nome LIKE ?";
+        $where_conditions[] = "numero LIKE ?";
         $params[] = "%{$query}%";
         
         $where_clause = implode(" AND ", $where_conditions);
@@ -109,12 +109,12 @@ try {
         // Recupera nomi che corrispondono alla ricerca
         $nomi = $db->fetchAll("
             SELECT 
-                nome,
+                numero as nome,
                 COUNT(*) as count_usage,
-                MAX(data_scontrino) as last_used
+                MAX(data) as last_used
             FROM scontrini 
             WHERE {$where_clause}
-            GROUP BY nome 
+            GROUP BY numero 
             ORDER BY count_usage DESC, last_used DESC
             LIMIT 15
         ", $params);

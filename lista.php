@@ -20,7 +20,7 @@ $filters = [
 ];
 
 // Costruisci query con filtri e permessi
-$where_conditions = ["s.archiviato = 0"];
+$where_conditions = ["s.stato != 'archiviato'"];
 $params = [];
 
 // Applica filtri avanzati usando la nuova funzione
@@ -29,12 +29,12 @@ $where_conditions = array_merge($where_conditions, $advanced_filter_data['where_
 $params = array_merge($params, $advanced_filter_data['params']);
 
 if ($anno) {
-    $where_conditions[] = "YEAR(s.data_scontrino) = ?";
+    $where_conditions[] = "YEAR(s.data) = ?";
     $params[] = $anno;
 }
 
 if ($mese) {
-    $where_conditions[] = "MONTH(s.data_scontrino) = ?";
+    $where_conditions[] = "MONTH(s.data) = ?";
     $params[] = $mese;
 }
 
@@ -85,17 +85,17 @@ $scontrini = $db->fetchAll("
     LEFT JOIN utenti u ON s.utente_id = u.id
     LEFT JOIN filiali f ON s.filiale_id = f.id
     WHERE $where_clause 
-    ORDER BY s.nome ASC, s.data_scontrino DESC, s.created_at DESC
+    ORDER BY s.numero ASC, s.data DESC, s.created_at DESC
 ", $params);
 
 // Raggruppa scontrini per nome
 $scontrini_raggruppati = [];
 foreach ($scontrini as $scontrino) {
-    $nome = $scontrino['nome'];
+    $numero = $scontrino['numero'];
     if (!isset($scontrini_raggruppati[$nome])) {
         $scontrini_raggruppati[$nome] = [];
     }
-    $scontrini_raggruppati[$nome][] = $scontrino;
+    $scontrini_raggruppati[$numero][] = $scontrino;
 }
 
 // Statistiche per i filtri correnti
@@ -121,7 +121,7 @@ $anni_clause = implode(" AND ", $anni_where);
 $anni_params = array_slice($params, 0, count($anni_where) - count($where_conditions) + count($anni_where));
 
 $anni = $db->fetchAll("
-    SELECT DISTINCT YEAR(s.data_scontrino) as anno 
+    SELECT DISTINCT YEAR(s.data) as anno 
     FROM scontrini s
     LEFT JOIN utenti u ON s.utente_id = u.id
     LEFT JOIN filiali f ON s.filiale_id = f.id
@@ -244,16 +244,16 @@ ob_start();
                 <tbody>
                     <?php foreach ($scontrini_gruppo as $scontrino): ?>
                     <tr class="<?php echo $scontrino['incassato'] ? 'incassato' : ''; ?>">
-                        <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?>
+                        <td><?php echo Utils::formatDate($scontrino['data']); ?>
                             <?php if ($scontrino['note']): ?>
                             <br><small class="text-muted"><?php echo htmlspecialchars($scontrino['note']); ?></small>
                             <?php endif; ?>
                         </td>
                         <td style="text-align: center;">
-                            <?php if (!empty($scontrino['foto_scontrino']) && file_exists($scontrino['foto_scontrino'])): ?>
-                                <a href="<?php echo ImageManager::getPhotoUrl($scontrino['foto_scontrino']); ?>" 
+                            <?php if (!empty($scontrino['foto']) && file_exists($scontrino['foto'])): ?>
+                                <a href="<?php echo ImageManager::getPhotoUrl($scontrino['foto']); ?>" 
                                    target="_blank" title="Visualizza foto scontrino">
-                                    <img src="<?php echo ImageManager::getPhotoUrl($scontrino['foto_scontrino']) . '&thumbnail=1'; ?>" 
+                                    <img src="<?php echo ImageManager::getPhotoUrl($scontrino['foto']) . '&thumbnail=1'; ?>" 
                                          style="max-width: 50px; max-height: 50px; border-radius: 4px; border: 1px solid #ddd;"
                                          alt="Foto scontrino">
                                 </a>

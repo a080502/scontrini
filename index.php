@@ -164,8 +164,8 @@ ob_start();
         <tbody>
             <?php foreach ($ultimi_scontrini as $scontrino): ?>
             <tr class="<?php echo in_array($scontrino['stato'], ['incassato', 'versato']) ? 'incassato' : ''; ?>">
-                <td><?php echo htmlspecialchars($scontrino['nome']); ?></td>
-                <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?></td>
+                <td><?php echo htmlspecialchars($scontrino['numero']); ?></td>
+                <td><?php echo Utils::formatDate($scontrino['data']); ?></td>
                 <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
                 <td class="euro da-versare-column"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
                 <?php if (Auth::isAdmin() || Auth::isResponsabile()): ?>

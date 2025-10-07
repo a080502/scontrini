@@ -44,7 +44,7 @@ try {
     
     // Query molto semplice
     echo "13. Test query SELECT...\n";
-    $result = $db->fetchAll("SELECT nome FROM scontrini LIMIT 3");
+    $result = $db->fetchAll("SELECT numero FROM scontrini LIMIT 3");
     echo "14. Query OK - trovati " . count($result) . " risultati\n";
     
     foreach ($result as $row) {

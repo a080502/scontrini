@@ -24,7 +24,7 @@ $available_users = Auth::getAvailableUsersForReceipts();
 
 if ($_POST) {
     $nome = Utils::sanitizeString($_POST['nome'] ?? '');
-    $data_scontrino = $_POST['data_scontrino'] ?? '';
+    $data = $_POST['data'] ?? '';
     $lordo = Utils::safeFloat($_POST['lordo'] ?? '');
     $da_versare = Utils::safeFloat($_POST['da_versare'] ?? '');
     $note = Utils::sanitizeString($_POST['note'] ?? '');
@@ -46,7 +46,7 @@ if ($_POST) {
         ];
     }
     
-    if (isset($_FILES['foto_scontrino']) && $_FILES['foto_scontrino']['error'] !== UPLOAD_ERR_NO_FILE) {
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
         $foto_uploaded = true;
     }
     
@@ -86,7 +86,7 @@ if ($_POST) {
     // Validazione
     if (empty($nome)) {
         $error = 'Il nome dello scontrino è obbligatorio';
-    } elseif (empty($data_scontrino)) {
+    } elseif (empty($data)) {
         $error = 'La data dello scontrino è obbligatoria';
     } elseif ($lordo <= 0) {
         $error = 'L\'importo lordo deve essere maggiore di zero';
@@ -98,13 +98,10 @@ if ($_POST) {
         try {
             // Inserisci lo scontrino associandolo all'utente e filiale determinati
             $db->query("
-                INSERT INTO scontrini (nome, data_scontrino, lordo, da_versare, note, utente_id, filiale_id, foto_scontrino, foto_mime_type, foto_size, gps_latitude, gps_longitude, gps_accuracy, gps_timestamp) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ", [$nome, $data_scontrino, $lordo, $da_versare, $note, $target_user_id, $target_filiale_id, $foto_path, $foto_mime_type, $foto_size, 
-                $gps_data ? $gps_data['latitude'] : null,
-                $gps_data ? $gps_data['longitude'] : null, 
-                $gps_data ? $gps_data['accuracy'] : null,
-                $gps_data ? date('Y-m-d H:i:s') : null
+                INSERT INTO scontrini (numero, data, lordo, da_versare, note, utente_id, filiale_id, foto, gps_coords) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ", [$nome, $data, $lordo, $da_versare, $note, $target_user_id, $target_filiale_id, $foto_path, 
+                $gps_data ? json_encode($gps_data) : null
             ]);
             
             $scontrino_id = $db->lastInsertId();
@@ -117,15 +114,15 @@ if ($_POST) {
                     'nome' => $current_user['nome']
                 ];
                 
-                $upload_result = ImageManager::saveScontrinoPhoto($_FILES['foto_scontrino'], $scontrino_id, $user_info, $gps_data);
+                $upload_result = ImageManager::saveScontrinoPhoto($_FILES['foto'], $scontrino_id, $user_info, $gps_data);
                 
                 if ($upload_result['success']) {
                     // Aggiorna lo scontrino con i dati della foto
                     $db->query("
                         UPDATE scontrini 
-                        SET foto_scontrino = ?, foto_mime_type = ?, foto_size = ?
+                        SET foto = ?
                         WHERE id = ?
-                    ", [$upload_result['path'], $upload_result['mime_type'], $upload_result['size'], $scontrino_id]);
+                    ", [$upload_result['path'], $scontrino_id]);
                 } else {
                     // Se l'upload fallisce, mostra un warning ma non bloccare il salvataggio
                     $warning = 'Scontrino salvato ma foto non caricata: ' . $upload_result['error'];
@@ -208,9 +205,9 @@ ob_start();
     </div>
     
     <div class="form-group">
-        <label for="data_scontrino"><i class="fas fa-calendar"></i> Data Scontrino *</label>
-        <input type="date" id="data_scontrino" name="data_scontrino" required
-               value="<?php echo htmlspecialchars($data_scontrino ?? date('Y-m-d')); ?>">
+        <label for="data"><i class="fas fa-calendar"></i> Data Scontrino *</label>
+        <input type="date" id="data" name="data" required
+               value="<?php echo htmlspecialchars($data ?? date('Y-m-d')); ?>">
     </div>
     
     <div class="form-group">
@@ -238,8 +235,8 @@ ob_start();
     </div>
     
     <div class="form-group">
-        <label for="foto_scontrino"><i class="fas fa-camera"></i> Foto Scontrino (opzionale)</label>
-        <input type="file" id="foto_scontrino" name="foto_scontrino" 
+        <label for="foto"><i class="fas fa-camera"></i> Foto Scontrino (opzionale)</label>
+        <input type="file" id="foto" name="foto" 
                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                class="form-control">
         <small class="text-muted">
@@ -304,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 // Gestione anteprima foto
-document.getElementById('foto_scontrino').addEventListener('change', function(e) {
+document.getElementById('foto').addEventListener('change', function(e) {
     const file = e.target.files[0];
     const preview = document.getElementById('foto-preview');
     const previewImg = document.getElementById('preview-img');
@@ -436,12 +433,12 @@ function showGpsMessage(message, type) {
 }
 
 function clearFotoPreview() {
-    document.getElementById('foto_scontrino').value = '';
+    document.getElementById('foto').value = '';
     document.getElementById('foto-preview').style.display = 'none';
 }
 
 // Drag and drop per la foto
-const fotoInput = document.getElementById('foto_scontrino');
+const fotoInput = document.getElementById('foto');
 const fotoLabel = fotoInput.parentElement;
 
 fotoLabel.addEventListener('dragover', function(e) {

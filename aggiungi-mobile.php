@@ -14,7 +14,7 @@ $available_users = Auth::getAvailableUsersForReceipts();
 
 if ($_POST) {
     $nome = Utils::sanitizeString($_POST['nome'] ?? '');
-    $data_scontrino = $_POST['data_scontrino'] ?? '';
+    $data = $_POST['data'] ?? '';
     $lordo = Utils::safeFloat($_POST['lordo'] ?? '');
     $da_versare = Utils::safeFloat($_POST['da_versare'] ?? '');
     $note = Utils::sanitizeString($_POST['note'] ?? '');
@@ -76,7 +76,7 @@ if ($_POST) {
     // Validazione
     if (empty($nome)) {
         $error = 'Il nome dello scontrino è obbligatorio';
-    } elseif (empty($data_scontrino)) {
+    } elseif (empty($data)) {
         $error = 'La data dello scontrino è obbligatoria';
     } elseif ($lordo <= 0) {
         $error = 'L\'importo lordo deve essere maggiore di zero';
@@ -88,13 +88,10 @@ if ($_POST) {
         try {
             // Inserisci lo scontrino associandolo all'utente e filiale determinati
             $db->query("
-                INSERT INTO scontrini (nome, data_scontrino, lordo, da_versare, note, utente_id, filiale_id, foto_scontrino, foto_mime_type, foto_size, gps_latitude, gps_longitude, gps_accuracy, gps_timestamp) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ", [$nome, $data_scontrino, $lordo, $da_versare, $note, $target_user_id, $target_filiale_id, $foto_path, $foto_mime_type, $foto_size,
-                $gps_data ? $gps_data['latitude'] : null,
-                $gps_data ? $gps_data['longitude'] : null, 
-                $gps_data ? $gps_data['accuracy'] : null,
-                $gps_data ? date('Y-m-d H:i:s') : null
+                INSERT INTO scontrini (numero, data, lordo, da_versare, note, utente_id, filiale_id, foto, gps_coords) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ", [$nome, $data, $lordo, $da_versare, $note, $target_user_id, $target_filiale_id, $foto_path, 
+                $gps_data ? json_encode($gps_data) : null
             ]);
             
             $scontrino_id = $db->lastInsertId();
@@ -113,9 +110,9 @@ if ($_POST) {
                     // Aggiorna lo scontrino con i dati della foto
                     $db->query("
                         UPDATE scontrini 
-                        SET foto_scontrino = ?, foto_mime_type = ?, foto_size = ?
+                        SET foto = ?
                         WHERE id = ?
-                    ", [$upload_result['path'], $upload_result['mime_type'], $upload_result['size'], $scontrino_id]);
+                    ", [$upload_result['path'], $scontrino_id]);
                 } else {
                     // Se l'upload fallisce, mostra un warning ma non bloccare il salvataggio
                     $warning = 'Scontrino salvato ma foto non caricata: ' . $upload_result['error'];
@@ -540,12 +537,12 @@ if ($_POST) {
             </div>
             
             <div class="form-group">
-                <label for="data_scontrino">📅 Data <span class="required">*</span></label>
+                <label for="data">📅 Data <span class="required">*</span></label>
                 <input type="date" 
-                       id="data_scontrino" 
-                       name="data_scontrino" 
+                       id="data" 
+                       name="data" 
                        class="form-control"
-                       value="<?php echo htmlspecialchars($data_scontrino ?? date('Y-m-d')); ?>" 
+                       value="<?php echo htmlspecialchars($data ?? date('Y-m-d')); ?>" 
                        required>
             </div>
             

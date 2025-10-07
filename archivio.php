@@ -32,14 +32,14 @@ $where_conditions_no_prefix = array_merge($where_conditions_no_prefix, $advanced
 $params = array_merge($params, $advanced_filter_data['params']);
 
 if ($anno) {
-    $where_conditions[] = "YEAR(s.data_scontrino) = ?";
-    $where_conditions_no_prefix[] = "YEAR(data_scontrino) = ?";
+    $where_conditions[] = "YEAR(s.data) = ?";
+    $where_conditions_no_prefix[] = "YEAR(data) = ?";
     $params[] = $anno;
 }
 
 if ($mese) {
-    $where_conditions[] = "MONTH(s.data_scontrino) = ?";
-    $where_conditions_no_prefix[] = "MONTH(data_scontrino) = ?";
+    $where_conditions[] = "MONTH(s.data) = ?";
+    $where_conditions_no_prefix[] = "MONTH(data) = ?";
     $params[] = $mese;
 }
 
@@ -55,7 +55,7 @@ $scontrini = $db->fetchAll("
     LEFT JOIN utenti u ON s.utente_id = u.id
     LEFT JOIN filiali f ON s.filiale_id = f.id
     WHERE $where_clause 
-    ORDER BY s.data_archiviazione DESC, s.data_scontrino DESC
+    ORDER BY s.data_archiviazione DESC, s.data DESC
 ", $params);
 
 // Statistiche archivio
@@ -72,7 +72,7 @@ $stats = $db->fetchOne("
 // Anni disponibili per filtro (solo dall'archivio e rispettando i permessi)
 $anni_where = $where_conditions_no_prefix; // Usa le condizioni senza prefisso
 $anni = $db->fetchAll("
-    SELECT DISTINCT YEAR(data_scontrino) as anno 
+    SELECT DISTINCT YEAR(data) as anno 
     FROM scontrini 
     WHERE " . implode(" AND ", $anni_where) . "
     ORDER BY anno DESC
@@ -162,7 +162,7 @@ ob_start();
                 <br><small class="text-muted"><?php echo htmlspecialchars($scontrino['note']); ?></small>
                 <?php endif; ?>
             </td>
-            <td><?php echo Utils::formatDate($scontrino['data_scontrino']); ?></td>
+            <td><?php echo Utils::formatDate($scontrino['data']); ?></td>
             <td class="euro"><?php echo Utils::formatCurrency($scontrino['lordo']); ?></td>
             <td class="euro"><?php echo Utils::formatCurrency($scontrino['da_versare'] ?? $scontrino['lordo']); ?></td>
             <td>
@@ -176,7 +176,7 @@ ob_start();
                 <?php endif; ?>
             </td>
             <td>
-                <?php if (!empty($scontrino['foto_scontrino'])): ?>
+                <?php if (!empty($scontrino['foto'])): ?>
                     <a href="view_photo.php?id=<?php echo $scontrino['id']; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="Visualizza foto">
                         <i class="fas fa-image"></i>
                     </a>

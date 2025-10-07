@@ -30,7 +30,7 @@ $error = '';
 
 if ($_POST) {
     $nome = Utils::sanitizeString($_POST['nome'] ?? '');
-    $data_scontrino = $_POST['data_scontrino'] ?? '';
+    $data = $_POST['data'] ?? '';
     $lordo = Utils::safeFloat($_POST['lordo'] ?? '');
     $da_versare = Utils::safeFloat($_POST['da_versare'] ?? '');
     $note = Utils::sanitizeString($_POST['note'] ?? '');
@@ -52,7 +52,7 @@ if ($_POST) {
     // Validazione
     if (empty($nome)) {
         $error = 'Il nome dello scontrino è obbligatorio';
-    } elseif (empty($data_scontrino)) {
+    } elseif (empty($data)) {
         $error = 'La data dello scontrino è obbligatoria';
     } elseif ($lordo <= 0) {
         $error = 'L\'importo lordo deve essere maggiore di zero';
@@ -108,8 +108,8 @@ if ($_POST) {
             
             if (empty($error)) {
                 // Costruisci la query di update
-                $base_query = "UPDATE scontrini SET nome = ?, data_scontrino = ?, lordo = ?, da_versare = ?, note = ?, updated_at = NOW()";
-                $base_params = [$nome, $data_scontrino, $lordo, $da_versare, $note];
+                $base_query = "UPDATE scontrini SET numero = ?, data = ?, lordo = ?, da_versare = ?, note = ?, updated_at = NOW()";
+                $base_params = [$nome, $data, $lordo, $da_versare, $note];
                 
                 if (!empty($foto_path_update)) {
                     $base_query .= $foto_path_update;
@@ -132,8 +132,8 @@ if ($_POST) {
     }
 } else {
     // Pre-compila i campi con i dati esistenti
-    $nome = $scontrino['nome'];
-    $data_scontrino = $scontrino['data_scontrino'];
+    $nome = $scontrino['numero'];
+    $data = $scontrino['data'];
     $lordo = $scontrino['lordo'];
     $da_versare = $scontrino['da_versare'] ?? $scontrino['lordo'];
     $note = $scontrino['note'];
@@ -152,11 +152,11 @@ ob_start();
     <p><strong>Ultima modifica:</strong> <?php echo Utils::formatDateTime($scontrino['updated_at']); ?></p>
     <?php endif; ?>
     <p><strong>Stato:</strong>
-        <?php if ($scontrino['archiviato']): ?>
+        <?php if ($scontrino['stato'] === 'archiviato'): ?>
             <span class="badge" style="background-color: #6c757d;">Archiviato</span>
-        <?php elseif ($scontrino['versato']): ?>
+        <?php elseif ($scontrino['stato'] === 'versato'): ?>
             <span class="badge badge-success">Versato</span>
-        <?php elseif ($scontrino['incassato']): ?>
+        <?php elseif ($scontrino['stato'] === 'incassato'): ?>
             <span class="badge badge-success">Incassato</span>
         <?php else: ?>
             <span class="badge badge-warning">Da Incassare</span>
@@ -181,9 +181,9 @@ ob_start();
     </div>
     
     <div class="form-group">
-        <label for="data_scontrino"><i class="fas fa-calendar"></i> Data Scontrino *</label>
-        <input type="date" id="data_scontrino" name="data_scontrino" required
-               value="<?php echo htmlspecialchars($data_scontrino ?? ''); ?>">
+        <label for="data"><i class="fas fa-calendar"></i> Data Scontrino *</label>
+        <input type="date" id="data" name="data" required
+               value="<?php echo htmlspecialchars($data ?? ''); ?>">
     </div>
     
     <div class="form-group">

@@ -73,7 +73,7 @@ foreach ($attivita as $scontrino) {
         'data' => $scontrino['created_at'],
         'tipo' => 'creazione',
         'scontrino' => $scontrino,
-        'descrizione' => "Scontrino '{$scontrino['nome']}' creato$user_info"
+        'descrizione' => "Scontrino '{$scontrino['numero']}' creato$user_info"
     ];
     
     // Incasso
@@ -82,7 +82,7 @@ foreach ($attivita as $scontrino) {
             'data' => $scontrino['data_incasso'],
             'tipo' => 'incasso',
             'scontrino' => $scontrino,
-            'descrizione' => "Scontrino '{$scontrino['nome']}' incassato$user_info"
+            'descrizione' => "Scontrino '{$scontrino['numero']}' incassato$user_info"
         ];
     }
     
@@ -92,7 +92,7 @@ foreach ($attivita as $scontrino) {
             'data' => $scontrino['data_versamento'],
             'tipo' => 'versamento',
             'scontrino' => $scontrino,
-            'descrizione' => "Scontrino '{$scontrino['nome']}' versato$user_info"
+            'descrizione' => "Scontrino '{$scontrino['numero']}' versato$user_info"
         ];
     }
     
@@ -102,7 +102,7 @@ foreach ($attivita as $scontrino) {
             'data' => $scontrino['data_archiviazione'],
             'tipo' => 'archiviazione',
             'scontrino' => $scontrino,
-            'descrizione' => "Scontrino '{$scontrino['nome']}' archiviato$user_info"
+            'descrizione' => "Scontrino '{$scontrino['numero']}' archiviato$user_info"
         ];
     }
 }
@@ -210,7 +210,7 @@ ob_start();
             </h5>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <p><strong>Data Scontrino:</strong> <?php echo Utils::formatDate($evento['scontrino']['data_scontrino']); ?></p>
+                    <p><strong>Data Scontrino:</strong> <?php echo Utils::formatDate($evento['scontrino']['data']); ?></p>
                     <p><strong>Importo:</strong> <?php echo Utils::formatCurrency($evento['scontrino']['lordo']); ?></p>
                     <?php if ($evento['scontrino']['note']): ?>
                     <p><strong>Note:</strong> <?php echo htmlspecialchars($evento['scontrino']['note']); ?></p>
