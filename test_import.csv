@@ -1,0 +1,9 @@
+Numero D'Ordine,Nome Scontrino,Codice Articolo,Descrizione Materiale,Quantità,Prezzo Unitario,Prezzo Totale
+ORD001,Materiali Ufficio Gennaio,PEN001,Penne Biro Blu confezione 10pz,2,5.50,11.00
+ORD001,Materiali Ufficio Gennaio,QUAD01,Quaderni A4 righe 80 fogli,5,3.20,16.00
+ORD001,Materiali Ufficio Gennaio,,Evidenziatori colori assortiti,3,4.75,14.25
+ORD002,Acquisto Computer Portatile,LAPTOP01,Laptop Dell Inspiron 15 i5 8GB RAM,1,650.00,650.00
+ORD002,Acquisto Computer Portatile,MOUSE01,Mouse wireless ergonomico,1,25.90,25.90
+ORD003,Materiali Pulizia Ufficio,,Detergente multiuso 1L,4,2.80,11.20
+ORD003,Materiali Pulizia Ufficio,CART001,Carta igienica 12 rotoli,2,8.50,17.00
+ORD003,Materiali Pulizia Ufficio,,Sapone mani antibatterico 500ml,3,4.20,12.60

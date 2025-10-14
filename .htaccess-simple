@@ -1,0 +1,50 @@
+# Versione semplificata .htaccess per XAMPP
+# Usa questo se la versione principale causa problemi
+
+# Disabilita listing directory
+Options -Indexes
+
+# Proteggi file sensibili
+<Files "config.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "*.lock">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "*.log">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "*.bak">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Proteggi file setup dopo installazione
+<Files "setup.php">
+    # Commenta queste righe se devi rieseguire il setup
+    # Order Allow,Deny
+    # Deny from all
+</Files>
+
+# Abilita rewrite engine per sicurezza base
+RewriteEngine On
+
+# Blocca accesso diretto alla cartella includes
+RewriteRule ^includes/.*$ - [F,L]
+
+# Cache per performance
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+</IfModule>
